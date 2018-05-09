@@ -26,7 +26,7 @@
 	<!-- Project properties -->
 	<properties>
 		<mainClass>fr.snapgames.game.oneclassgame.Game</mainClass>
-		<versioneye.project.id>[TO_BE_DEFINED]</versioneye.project.id>
+		<versioneye.project.id>5af2f8ed0fb24f0e57e3d81f</versioneye.project.id>
 	</properties>
 
 	<dependencies>
