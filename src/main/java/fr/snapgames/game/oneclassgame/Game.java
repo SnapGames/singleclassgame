@@ -47,7 +47,10 @@ public class Game extends JPanel {
 	private float fpsDelay = 1000.0f / FPS;
 
 	private JFrame frame;
+	// Windows Dimension (Scale factor applied)
 	private Dimension dim;
+	// Play zone dimension
+	private Dimension playZone;
 
 	private boolean exit = false;
 	private boolean pause = false;
@@ -339,6 +342,7 @@ public class Game extends JPanel {
 	 */
 	public Game() {
 		dim = new Dimension((int) (WIDTH * SCALE), (int) (HEIGHT * SCALE));
+		playZone = new Dimension(WIDTH, HEIGHT);
 		buffer = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_4BYTE_ABGR);
 		kil = new KeyInputListener();
 
@@ -394,7 +398,7 @@ public class Game extends JPanel {
 		while (!exit) {
 			currentTime = System.nanoTime();
 			if (previousTime > 0) {
-				elapsed = (currentTime - previousTime) / 10000000.0f;
+				elapsed = (currentTime - previousTime) / 1000000.0f;
 				if (elapsed < 0) {
 					elapsed = 1;
 				}
@@ -415,26 +419,18 @@ public class Game extends JPanel {
 		System.exit(0);
 	}
 
-	/**
-	 * release all resources before quitting.
-	 */
-	private void dispose() {
-		dim = null;
-		frame = null;
-		kil = null;
-		player = null;
-		buffer = null;
-	}
-
 	private void wait(float elapsed) {
-		if (elapsed < 0) {
+		if (elapsed > fpsDelay) {
 			elapsed = 1;
 		}
-		try {
-			Thread.sleep((int) (fpsDelay - elapsed));
-		} catch (InterruptedException e) {
-			System.err.println("unable to wait !!");
-			System.exit(-1);
+		if (elapsed > 0) {
+			try {
+				Thread.sleep((int) (elapsed));
+			} catch (InterruptedException e) {
+				System.err.println("unable to wait !!");
+				System.exit(-1);
+			}
+
 		}
 	}
 
@@ -448,19 +444,33 @@ public class Game extends JPanel {
 		if (objects != null && objects.size() > 0) {
 			for (GameObject o : objects) {
 				o.update((int) elapsed);
-				if (o.x < 0) {
-					o.x = 0;
-				}
-				if (o.y < 0) {
-					o.y = 0;
-				}
-				if (o.x > HEIGHT - o.height) {
-					o.x = HEIGHT - o.height;
-				}
-				if (o.y > WIDTH - o.width) {
-					o.y = WIDTH - o.width;
-				}
+				constrainsObjectToPlayZone(playZone, o);
 			}
+		}
+	}
+
+	/**
+	 * Constrained {@link GameObject} <code>object</code> to the Play Zone
+	 * <code>constrainedZone</code>.
+	 * 
+	 * @param constrainedZone
+	 *            the zone where to constrains game object.
+	 * @param object
+	 *            the object to be constrained to the play zone.
+	 */
+	private void constrainsObjectToPlayZone(Dimension constrainedZone, GameObject object) {
+
+		if (object.x < 0) {
+			object.x = 0;
+		}
+		if (object.y < 0) {
+			object.y = 0;
+		}
+		if (object.x > constrainedZone.width - object.width) {
+			object.x = constrainedZone.width - object.width;
+		}
+		if (object.y > constrainedZone.height - object.height) {
+			object.y = constrainedZone.height - object.height;
 		}
 	}
 
@@ -472,7 +482,7 @@ public class Game extends JPanel {
 		Graphics2D g = (Graphics2D) buffer.getGraphics();
 
 		g.setColor(Color.BLACK);
-		g.fillRect(0, 0, WIDTH, HEIGHT);
+		g.fillRect(0, 0, buffer.getWidth(), buffer.getHeight());
 
 		if (objects != null && objects.size() > 0) {
 			for (GameObject o : objects) {
@@ -481,7 +491,7 @@ public class Game extends JPanel {
 		}
 		if (debug > 0) {
 			g.setColor(Color.ORANGE);
-			g.drawString(fps, 10, HEIGHT - 20);
+			g.drawString(fps, 10, buffer.getHeight() - 20);
 		}
 
 		g.dispose();
@@ -495,6 +505,17 @@ public class Game extends JPanel {
 		Graphics2D gbuff = (Graphics2D) frame.getGraphics();
 		gbuff.drawImage(buffer, 0, 0, (int) (WIDTH * SCALE), (int) (HEIGHT * SCALE), 0, 0, WIDTH, HEIGHT, null);
 		gbuff.dispose();
+	}
+
+	/**
+	 * release all resources before quitting.
+	 */
+	private void dispose() {
+		dim = null;
+		frame = null;
+		kil = null;
+		player = null;
+		buffer = null;
 	}
 
 	/**
