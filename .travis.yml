@@ -1,0 +1,9 @@
+#
+# SnapGames 2018
+#
+language: java
+jdk:
+  - oraclejdk8
+
+#before_install:
+#  - Commands toi execute before install
