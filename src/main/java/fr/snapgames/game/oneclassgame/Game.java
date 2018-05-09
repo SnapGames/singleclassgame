@@ -32,10 +32,12 @@ import javax.swing.JPanel;
  * objects.
  * </ul>
  * 
- * @author Fr�d�ric Delorme<frederic.delorme@snapgames.fr>
+ * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
+ * 
+ * @see http://github.com/SnapGames/singleclassgame
  *
  */
-public class Game extends JPanel implements KeyListener {
+public class Game extends JPanel {
 
 	private static int WIDTH = 640;
 	private static int HEIGHT = 400;
@@ -52,41 +54,76 @@ public class Game extends JPanel implements KeyListener {
 	private int debug = 2;
 
 	private BufferedImage buffer;
-	GameObject player;
-
 	private List<GameObject> objects = new ArrayList<>();
 
-	class KeyInputListner implements KeyListener {
-		boolean[] keys = new boolean[256];
-		List<KeyCallBack> objectsCallBack = new ArrayList<>();
+	KeyInputListener kil = null;
 
+	GameObject player;
+
+	/**
+	 * Main KeyListener at GameInstance level. It will manage multiple KeyListeners
+	 * on the window.
+	 * 
+	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
+	 * 
+	 */
+	class KeyInputListener implements KeyListener {
+		/**
+		 * current state of the key
+		 */
+		boolean[] keys = new boolean[65235];
+		/**
+		 * Previous state of the key.
+		 */
+		boolean[] previous = new boolean[65235];
+
+		/**
+		 * List of KeyListener to be called on key events.
+		 */
+		List<KeyListener> objectsCallBack = new ArrayList<>();
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.awt.event.KeyListener#keyPressed(java.awt.event.KeyEvent)
+		 */
 		@Override
 		public void keyPressed(KeyEvent e) {
+			previous[e.getKeyCode()] = keys[e.getKeyCode()];
 			keys[e.getKeyCode()] = true;
-			for (KeyCallBack kcb : objectsCallBack) {
-				kcb.KeyPressed((GameObject) kcb, e);
+			for (KeyListener kcb : objectsCallBack) {
+				kcb.keyPressed(e);
 			}
 		}
 
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.awt.event.KeyListener#keyReleased(java.awt.event.KeyEvent)
+		 */
 		@Override
 		public void keyReleased(KeyEvent e) {
-			keys[e.getKeyCode()] = true;
-			for (KeyCallBack kcb : objectsCallBack) {
-				kcb.KeyReleased((GameObject) kcb, e);
-
+			previous[e.getKeyCode()] = keys[e.getKeyCode()];
+			keys[e.getKeyCode()] = false;
+			for (KeyListener kcb : objectsCallBack) {
+				kcb.keyReleased(e);
 			}
 		}
 
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.awt.event.KeyListener#keyTyped(java.awt.event.KeyEvent)
+		 */
 		@Override
 		public void keyTyped(KeyEvent e) {
-			for (KeyCallBack kcb : objectsCallBack) {
-				kcb.KeyPressed((GameObject) kcb, e);
-
+			for (KeyListener kcb : objectsCallBack) {
+				kcb.keyPressed(e);
 			}
 
 		}
 
-		public void add(KeyCallBack kcb) {
+		public void add(KeyListener kcb) {
 			this.objectsCallBack.add(kcb);
 		}
 
@@ -95,7 +132,7 @@ public class Game extends JPanel implements KeyListener {
 	/**
 	 * The class to manage an object managed by the game.
 	 * 
-	 * @author Fr�d�ric Delorme<frederic.delorme@snapgames.fr>
+	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 *
 	 */
 	class GameObject {
@@ -111,7 +148,7 @@ public class Game extends JPanel implements KeyListener {
 
 		Color debugColor = Color.GREEN;
 
-		public float moveVelocity = 4.0f;
+		float moveVelocity = 4.0f;
 
 		/**
 		 * CRete a new Object entity with a <code>name</code> and a position
@@ -183,29 +220,115 @@ public class Game extends JPanel implements KeyListener {
 
 	}
 
-	class PlayerKeyInput implements KeyCallBack {
+	/**
+	 * Game Level key listener
+	 * 
+	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
+	 *
+	 */
+	class GameKeyInput implements KeyListener {
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.awt.event.KeyListener#keyPressed(java.awt.event.KeyEvent)
+		 */
+		@Override
+		public void keyPressed(KeyEvent e) {
+			// Nothing to do here.
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.awt.event.KeyListener#keyReleased(java.awt.event.KeyEvent)
+		 */
+		@Override
+		public void keyReleased(KeyEvent e) {
+			switch (e.getKeyCode()) {
+			case KeyEvent.VK_ESCAPE:
+			case KeyEvent.VK_Q:
+				exit = true;
+				break;
+			case KeyEvent.VK_PAUSE:
+			case KeyEvent.VK_P:
+				pause = !pause;
+				break;
+			}
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.awt.event.KeyListener#keyTyped(java.awt.event.KeyEvent)
+		 */
+		@Override
+		public void keyTyped(KeyEvent arg0) {
+			// Nothing to do here.
+
+		}
+	}
+
+	/**
+	 * A specific Key Listener for the Player object.
+	 * 
+	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
+	 *
+	 */
+	class PlayerKeyInput implements KeyListener {
 
 		GameObject player = null;
-		
-		public PlayerKeyInput(GameObject o) {
+		KeyInputListener kil = null;
+
+		public PlayerKeyInput(GameObject o, KeyInputListener kil) {
 			player = o;
+			this.kil = kil;
 		}
 
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.awt.event.KeyListener#keyPressed(java.awt.event.KeyEvent)
+		 */
 		@Override
-		public void KeyPressed(GameObject go, KeyEvent e) {
-			
+		public void keyPressed(KeyEvent e) {
+			if (kil.keys[KeyEvent.VK_UP]) {
+				player.dy = -player.moveVelocity;
+			}
+			if (kil.keys[KeyEvent.VK_DOWN]) {
+				player.dy = player.moveVelocity;
+			}
+			if (kil.keys[KeyEvent.VK_LEFT]) {
+				player.dx = -player.moveVelocity;
+			}
+
+			if (kil.keys[KeyEvent.VK_RIGHT]) {
+				player.dx = player.moveVelocity;
+			}
+			if (kil.keys[KeyEvent.VK_SPACE]) {
+				player.dx = 0.0f;
+				player.dy = 0.0f;
+			}
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.awt.event.KeyListener#keyReleased(java.awt.event.KeyEvent)
+		 */
+		@Override
+		public void keyReleased(KeyEvent e) {
+			// Nothing to do here.
 
 		}
 
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see java.awt.event.KeyListener#keyTyped(java.awt.event.KeyEvent)
+		 */
 		@Override
-		public void KeyReleased(GameObject go, KeyEvent e) {
-			// TODO Auto-generated method stub
-
-		}
-
-		@Override
-		public void KeyTyped(GameObject go, KeyEvent e) {
-			// TODO Auto-generated method stub
+		public void keyTyped(KeyEvent e) {
+			// Nothing to do here.
 
 		}
 
@@ -217,6 +340,7 @@ public class Game extends JPanel implements KeyListener {
 	public Game() {
 		dim = new Dimension((int) (WIDTH * SCALE), (int) (HEIGHT * SCALE));
 		buffer = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_4BYTE_ABGR);
+		kil = new KeyInputListener();
 
 		frame = new JFrame("Hello Game !");
 
@@ -226,7 +350,7 @@ public class Game extends JPanel implements KeyListener {
 		frame.setResizable(false);
 
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.addKeyListener(this);
+		frame.addKeyListener(kil);
 
 		frame.setContentPane(this);
 
@@ -238,10 +362,17 @@ public class Game extends JPanel implements KeyListener {
 	 * initialize some GameObject's to play with.
 	 */
 	public void initialize() {
+		// add Game key listener
+		kil.add(new GameKeyInput());
+
 		player = new GameObject("player", 50, 50);
 		player.setPriority(1);
 		player.setDebugColor(Color.RED);
 		add(player);
+
+		// add specific game player key listener
+		kil.add(new PlayerKeyInput(player, kil));
+
 		for (int i = 0; i < 10; i++) {
 			float posX = (float) (Math.random() * WIDTH / 2);
 			float posY = (float) (Math.random() * HEIGHT / 2);
@@ -280,7 +411,19 @@ public class Game extends JPanel implements KeyListener {
 			wait(elapsed);
 			previousTime = currentTime;
 		}
+		dispose();
 		System.exit(0);
+	}
+
+	/**
+	 * release all resources before quitting.
+	 */
+	private void dispose() {
+		dim = null;
+		frame = null;
+		kil = null;
+		player = null;
+		buffer = null;
 	}
 
 	private void wait(float elapsed) {
@@ -367,59 +510,6 @@ public class Game extends JPanel implements KeyListener {
 				return (o1.priority < o2.priority ? -1 : 1);
 			};
 		});
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.awt.event.KeyListener#keyPressed(java.awt.event.KeyEvent)
-	 */
-	public void keyPressed(KeyEvent e) {
-		switch (e.getKeyCode()) {
-		case KeyEvent.VK_UP:
-			player.dy = -player.moveVelocity;
-			break;
-		case KeyEvent.VK_DOWN:
-			player.dy = player.moveVelocity;
-			break;
-		case KeyEvent.VK_LEFT:
-			player.dx = -player.moveVelocity;
-			break;
-		case KeyEvent.VK_RIGHT:
-			player.dx = player.moveVelocity;
-			break;
-		case KeyEvent.VK_SPACE:
-			player.dx = 0.0f;
-			player.dy = 0.0f;
-			break;
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.awt.event.KeyListener#keyReleased(java.awt.event.KeyEvent)
-	 */
-	public void keyReleased(KeyEvent e) {
-		switch (e.getKeyCode()) {
-		case KeyEvent.VK_ESCAPE:
-		case KeyEvent.VK_Q:
-			exit = true;
-			break;
-		case KeyEvent.VK_PAUSE:
-		case KeyEvent.VK_P:
-			pause = !pause;
-			break;
-		}
-	}
-
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.awt.event.KeyListener#keyTyped(java.awt.event.KeyEvent)
-	 */
-	public void keyTyped(KeyEvent arg0) {
-
 	}
 
 	/**
