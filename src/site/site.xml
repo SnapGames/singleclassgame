@@ -1,0 +1,12 @@
+<project>
+    <skin>
+        <groupId>lt.velykis.maven.skins</groupId>
+        <artifactId>reflow-maven-skin</artifactId>
+        <version>1.1.1</version>
+    </skin>
+    <custom>
+        <reflowSkin>
+            <theme>bootswatch-yeti</theme>
+        </reflowSkin>
+    </custom>
+</project>
