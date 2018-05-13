@@ -6,7 +6,7 @@
     </skin>
     <custom>
         <reflowSkin>
-            <theme>bootswatch-yeti</theme>
+            <theme>bootswatch-spacelab</theme>
         </reflowSkin>
     </custom>
 </project>

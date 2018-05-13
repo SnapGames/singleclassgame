@@ -397,14 +397,14 @@ public class Game extends JPanel {
 		int framesCount = 0, timeFrames = 0;
 		while (!exit) {
 			currentTime = System.nanoTime();
-			if (previousTime > 0) {
-				elapsed = (currentTime - previousTime) / 1000000.0f;
-				if (elapsed < 0) {
-					elapsed = 1;
+			if (previousTime > 0.0f) {
+				elapsed = (currentTime - previousTime) / 10000000.0f;
+				if (elapsed < 0.0f) {
+					elapsed = 1.0f;
 				}
 				update(elapsed);
 			}
-			render(String.format("c:%2d t:%4d fps:%3d", framesCount, timeFrames, realFPS));
+			render(String.format("c:%02d t:%04d fps:%03d", framesCount, timeFrames, realFPS));
 			framesCount += 1;
 			timeFrames += elapsed;
 			if (timeFrames > 1000) {
