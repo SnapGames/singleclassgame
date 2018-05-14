@@ -1,4 +1,13 @@
 <project>
+
+	<body>
+		<menu name="" inherit="top">
+		<item name="Introduction" href="introduction.html"/>
+		<item name="Markdown Sample" href="sample.html"/>
+		</menu>
+		<menu ref="reports"/>
+	</body>
+
     <skin>
         <groupId>lt.velykis.maven.skins</groupId>
         <artifactId>reflow-maven-skin</artifactId>
