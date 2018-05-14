@@ -10,3 +10,5 @@ this simple project intends to propose to reader a simple way to create and unde
 - Sorter based on *QuadTree*,
 - *GameState* and *GameStateManager*.
 
+This single class will run on every OS with a JDK8+.
+
