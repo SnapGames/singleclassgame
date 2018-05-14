@@ -14,8 +14,11 @@ import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 
@@ -62,6 +65,55 @@ public class Game extends JPanel {
 	KeyInputListener kil = null;
 
 	GameObject player;
+	private ResourceManager resourceMgr;
+
+	/**
+	 * the ResourceUnknownException class is thrown when a resource is not found.
+	 * 
+	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
+	 *
+	 */
+	public class ResourceUnknownException extends Exception {
+
+		/**
+		 * @param message
+		 */
+		public ResourceUnknownException(String message) {
+			super(message);
+		}
+
+	}
+
+	/**
+	 * the ResourceManager class is ....
+	 * 
+	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
+	 *
+	 */
+	public class ResourceManager {
+		private Map<String, Object> objects = new HashMap<>();
+
+		public void addResource(String name, String path) {
+			if (path.contains(".png")) {
+				try {
+					BufferedImage image = ImageIO.read(this.getClass().getResourceAsStream(name));
+					objects.put(name, image);
+				} catch (Exception e) {
+					System.err.println(String.format("Unable to find %s and store resource as %s.", path, name));
+					System.exit(-1);
+				}
+			}
+
+		}
+
+		public BufferedImage getImage(String name) throws ResourceUnknownException {
+			if (objects.containsKey(name)) {
+				return (BufferedImage) objects.get(name);
+			} else {
+				throw new ResourceUnknownException(String.format("Unknown resource named %s", name));
+			}
+		}
+	}
 
 	/**
 	 * Main KeyListener at GameInstance level. It will manage multiple KeyListeners
@@ -141,17 +193,24 @@ public class Game extends JPanel {
 	class GameObject {
 		String name = "";
 
-		float x = 0, y = 0, width = 16, height = 16;
-		float dx = 0, dy = 0;
-		float friction = 0.89f;
+		float ax = 0.0f, ay = 0.0f;
+		float dx = 0.0f, dy = 0.0f;
+		float x = 0.0f, y = 0.0f;
+
+		float width = 16.0f, height = 16.0f;
+
+		float gravity = 0.981f;
+
+		float moveVelocity = 4.0f;
+		float mass = 0.89f;
+		float friction = 0.92f;
+		float elasticity = 0.60f;
 
 		BufferedImage image = null;
 
 		int priority = 0;
 
 		Color debugColor = Color.GREEN;
-
-		float moveVelocity = 4.0f;
 
 		/**
 		 * CRete a new Object entity with a <code>name</code> and a position
@@ -170,41 +229,19 @@ public class Game extends JPanel {
 			this.y = y;
 		}
 
-		public void setVelocity(float dx, float dy) {
-			this.dx = dx;
-			this.dy = dy;
-		}
-
-		public void setDebugColor(Color debugColor) {
-			this.debugColor = debugColor;
-		}
-
 		public void update(float elapsed) {
+			this.dx += this.ax * friction * elapsed;
+			this.dy += (((this.ay * friction) + this.gravity) / mass) * elapsed;
 			this.x += this.dx * elapsed;
 			this.y += this.dy * elapsed;
-			dx *= friction;
-			dy *= friction;
-			if (dx < 0.1) {
+
+			if (Math.abs(dx) < 0.01f) {
 				dx = 0.0f;
 			}
-			if (dy < 0.1) {
+			if (Math.abs(dy) < 0.01f) {
 				dy = 0.0f;
 			}
-		}
 
-		public void setPosition(float x, float y) {
-			this.x = x;
-			this.y = y;
-		}
-
-		public void setPriority(int priority) {
-			this.priority = priority;
-		}
-
-		public void setImage(BufferedImage image) {
-			this.image = image;
-			this.width = image.getWidth();
-			this.height = image.getHeight();
 		}
 
 		public void render(Graphics2D g) {
@@ -219,6 +256,47 @@ public class Game extends JPanel {
 					g.drawLine((int) x, (int) y, (int) (x + dx), (int) (y + dy));
 				}
 			}
+		}
+
+		public void setAcceleration(float ax, float ay) {
+			this.ax = ax;
+			this.ay = ay;
+		}
+
+		public void setVelocity(float dx, float dy) {
+			this.dx = dx;
+			this.dy = dy;
+		}
+
+		public void setPosition(float x, float y) {
+			this.x = x;
+			this.y = y;
+		}
+
+		public void setMass(float factor) {
+			this.mass = factor;
+		}
+
+		public void setFriction(float factor) {
+			this.friction = factor;
+		}
+
+		public void setElasticity(float factor) {
+			this.elasticity = factor;
+		}
+
+		public void setDebugColor(Color debugColor) {
+			this.debugColor = debugColor;
+		}
+
+		public void setPriority(int priority) {
+			this.priority = priority;
+		}
+
+		public void setImage(BufferedImage image) {
+			this.image = image;
+			this.width = image.getWidth();
+			this.height = image.getHeight();
 		}
 
 	}
@@ -281,6 +359,7 @@ public class Game extends JPanel {
 
 		GameObject player = null;
 		KeyInputListener kil = null;
+		boolean movePlayer = false;
 
 		public PlayerKeyInput(GameObject o, KeyInputListener kil) {
 			player = o;
@@ -295,21 +374,32 @@ public class Game extends JPanel {
 		@Override
 		public void keyPressed(KeyEvent e) {
 			if (kil.keys[KeyEvent.VK_UP]) {
-				player.dy = -player.moveVelocity;
+				movePlayer = true;
+				player.ay = -player.moveVelocity;
 			}
 			if (kil.keys[KeyEvent.VK_DOWN]) {
-				player.dy = player.moveVelocity;
+				movePlayer = true;
+				player.ay = player.moveVelocity;
 			}
 			if (kil.keys[KeyEvent.VK_LEFT]) {
-				player.dx = -player.moveVelocity;
+				movePlayer = true;
+				player.ax = -player.moveVelocity;
 			}
 
 			if (kil.keys[KeyEvent.VK_RIGHT]) {
-				player.dx = player.moveVelocity;
+				movePlayer = true;
+				player.ax = player.moveVelocity;
 			}
+
 			if (kil.keys[KeyEvent.VK_SPACE]) {
-				player.dx = 0.0f;
-				player.dy = 0.0f;
+				movePlayer = true;
+				player.ax = 0.0f;
+				player.ay = 0.0f;
+			}
+
+			if (!movePlayer) {
+				player.ax = 0.0f;
+				player.ay = 0.0f;
 			}
 		}
 
@@ -320,7 +410,7 @@ public class Game extends JPanel {
 		 */
 		@Override
 		public void keyReleased(KeyEvent e) {
-			// Nothing to do here.
+			movePlayer = false;
 
 		}
 
@@ -345,6 +435,7 @@ public class Game extends JPanel {
 		playZone = new Dimension(WIDTH, HEIGHT);
 		buffer = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_4BYTE_ABGR);
 		kil = new KeyInputListener();
+		resourceMgr = new ResourceManager();
 
 		frame = new JFrame("Hello Game !");
 
@@ -368,8 +459,20 @@ public class Game extends JPanel {
 	public void initialize() {
 		// add Game key listener
 		kil.add(new GameKeyInput());
-
+		resourceMgr.addResource("playerBall", "res/images/blue-bouncing-ball-64x64.png");
+		
 		player = new GameObject("player", 50, 50);
+		try {
+			player.setImage(resourceMgr.getImage("playerBall"));
+		} catch (ResourceUnknownException e) {
+			System.err.println("Unable to retrieve the playerBall resource");
+			System.exit(-1);
+		}
+		player.moveVelocity = 2.0f;
+		player.setMass(0.100f);
+		player.setFriction(0.92f);
+		player.setElasticity(0.42f);
+
 		player.setPriority(1);
 		player.setDebugColor(Color.RED);
 		add(player);
@@ -381,7 +484,10 @@ public class Game extends JPanel {
 			float posX = (float) (Math.random() * WIDTH / 2);
 			float posY = (float) (Math.random() * HEIGHT / 2);
 			GameObject enemy = new GameObject("enemy_" + i, posX, posY);
-			player.setPriority(2 + i);
+			enemy.setPriority(2 + i);
+			enemy.setMass(10f);
+			enemy.setFriction(0.01f);
+			enemy.setElasticity(0.0f);
 			add(enemy);
 		}
 	}
@@ -412,7 +518,7 @@ public class Game extends JPanel {
 				framesCount = 0;
 				timeFrames = 0;
 			}
-			wait(elapsed);
+			wait(fpsDelay - elapsed);
 			previousTime = currentTime;
 		}
 		dispose();
