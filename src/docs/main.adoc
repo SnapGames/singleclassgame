@@ -1,0 +1,19 @@
+= Single Class Game
+
+== This is a game !
+
+the simplest way to crate a game with a minimalistic "all-in-one" class.
+
+== Project Structure
+
+=== Code
+
+**TODO**
+
+=== Docs
+
+**TODO**
+
+=== Site
+
+**TODO**
