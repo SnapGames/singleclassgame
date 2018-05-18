@@ -5,10 +5,50 @@
 	<groupId>fr.snapgames.game</groupId>
 	<artifactId>oneclassgame</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+
 	<name>OneClassGame</name>
 	<description>An attempt to create a simple game with near only one class.</description>
+	<inceptionYear>2018</inceptionYear>
+
+	<!-- Project properties -->
+
+	<properties>
+		<!-- Compilation JDK and file encoding -->
+		<jdk.version>9</jdk.version>
+		<file.encoding>utf-8</file.encoding>
+		<!--  Main class to run game -->
+		<mainClass>fr.snapgames.game.oneclassgame.Game</mainClass>
+		<!-- Version eye project id -->
+		<versioneye.project.id>5af2f8ed0fb24f0e57e3d81f</versioneye.project.id>
+		<!-- github repo owner -->
+		<git.repo.owner>snapgames</git.repo.owner>
+		<!-- github repo name -->
+		<git.repo.name>singleclassgame</git.repo.name>
+	</properties>
+
+	<!-- Specific Continuous Integration parameters -->
+	<url>https://github.com/SnapGames/singleclassgame/wiki</url>
+	<organization>
+		<name>SnapGames</name>
+		<url>http://snapgames.fr/</url>
+	</organization>
+	<scm>
+		<url>https://github.com/SnapGames/singleclassgame</url>
+		<connection>scm:git:https://github.com/SnapGames/singleclassgame.git</connection>
+		<developerConnection>scm:git:https://github.com/SnapGames/singleclassgame.git</developerConnection>
+		<tag>${project.version}</tag>
+	</scm>
+	<issueManagement>
+		<url>https://github.com/SnapGames/singleclassgame/issues</url>
+		<system>github</system>
+	</issueManagement>
+	<ciManagement>
+		<system>travis-ci</system>
+		<url>https://travis-ci.org/SnapGames/singleclassgame</url>
+	</ciManagement>
 
 	<!-- Main contributors to the project -->
+
 	<contributors>
 		<contributor>
 			<name>Frédéric Delorme</name>
@@ -23,15 +63,10 @@
 		</contributor>
 	</contributors>
 
-	<!-- Project properties -->
-	<properties>
-		<mainClass>fr.snapgames.game.oneclassgame.Game</mainClass>
-		<versioneye.project.id>5af2f8ed0fb24f0e57e3d81f</versioneye.project.id>
-	</properties>
+	<!-- All project dependencies -->
 
 	<dependencies>
 		<!-- Logging capabilities -->
-
 		<!-- https://mvnrepository.com/artifact/org.slf4j/log4j-over-slf4j -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -43,18 +78,14 @@
 			<artifactId>slf4j-simple</artifactId>
 			<version>1.7.25</version>
 		</dependency>
-
 		<!-- Command line parameters -->
-
 		<!-- https://mvnrepository.com/artifact/commons-cli/commons-cli -->
 		<dependency>
 			<groupId>commons-cli</groupId>
 			<artifactId>commons-cli</artifactId>
 			<version>1.4</version>
 		</dependency>
-
 		<!-- Audio and Music system -->
-
 		<!-- https://mvnrepository.com/artifact/com.googlecode.soundlibs/jlayer -->
 		<dependency>
 			<groupId>com.googlecode.soundlibs</groupId>
@@ -67,12 +98,21 @@
 			<artifactId>mp3spi</artifactId>
 			<version>1.9.5-2</version>
 		</dependency>
+		<!-- Test things -->
+		<!-- https://mvnrepository.com/artifact/junit/junit -->
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
-
 	<!-- Building things -->
+
 	<build>
 		<plugins>
+
 			<!-- Compiler -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -80,11 +120,14 @@
 				<version>3.7.0</version>
 				<configuration>
 					<!-- http://maven.apache.org/plugins/maven-compiler-plugin/ -->
-					<source>1.8</source>
-					<target>1.8</target>
-					<encoding>utf-8</encoding>
+					<source>${jdk.version}</source>
+					<target>${jdk.version}</target>
+					<encoding>${file.encoding}</encoding>
+					<maven.compiler.source>9</maven.compiler.source>
+					<maven.compiler.target>1.9</maven.compiler.target>
 				</configuration>
 			</plugin>
+
 			<!-- Build the minimalist JAR without dependencies (Normal Edition) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -98,16 +141,17 @@
 							<mainClass>${mainClass}</mainClass>
 						</manifest>
 					</archive>
-					<encoding>utf-8</encoding>
+					<encoding>${file.encoding}</encoding>
 				</configuration>
 			</plugin>
+
 			<!-- Package a jar with Sources -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-source-plugin</artifactId>
 				<version>3.0.1</version>
 				<configuration>
-					<enconding>utf-8</enconding>
+					<enconding>${file.encoding}</enconding>
 				</configuration>
 				<executions>
 					<execution>
@@ -119,13 +163,14 @@
 					</execution>
 				</executions>
 			</plugin>
+
 			<!-- Prepare Javadoc with a specific Markdown docklet -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-javadoc-plugin</artifactId>
 				<version>3.0.0</version>
 				<configuration>
-					<enconding>utf-8</enconding>
+					<enconding>${file.encoding}</enconding>
 					<stylesheet>maven</stylesheet>
 					<overview>${project.basedir}/README.md</overview>
 					<doclet>ch.raffael.doclets.pegdown.PegdownDoclet</doclet>
@@ -146,13 +191,14 @@
 					</execution>
 				</executions>
 			</plugin>
+
 			<!-- Package a One full of dependencies JAR (Buffed Edition) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<version>3.1.0</version>
 				<configuration>
-					<encoding>utf-8</encoding>
+					<encoding>${file.encoding}</encoding>
 					<archive>
 						<manifest>
 							<addClasspath>true</addClasspath>
@@ -200,6 +246,7 @@
 					</execution>
 				</executions>
 			</plugin>
+
 			<!-- create a Windows EXE -->
 			<!-- https://github.com/lukaszlenart/launch4j-maven-plugin/blob/master/src/main/resources/README.adoc -->
 			<!-- see http://launch4j.sourceforge.net/ -->
@@ -225,7 +272,7 @@
 							</classPath>
 							<icon>src/main/resources/res/application.ico</icon>
 							<jre>
-								<minVersion>1.8.0</minVersion>
+								<minVersion>${jdk.version}</minVersion>
 								<jdkPreference>preferJre</jdkPreference>
 							</jre>
 							<versionInfo>
@@ -244,6 +291,7 @@
 					</execution>
 				</executions>
 			</plugin>
+
 			<!-- Prepare packaging to deploy artifact to repository -->
 			<plugin>
 				<artifactId>maven-deploy-plugin</artifactId>
@@ -258,25 +306,45 @@
 				<version>3.3</version>
 				<dependencies>
 					<dependency>
-					<groupId>lt.velykis.maven.skins</groupId>
-					<artifactId>reflow-velocity-tools</artifactId>
-					<version>1.1.1</version>
+						<groupId>lt.velykis.maven.skins</groupId>
+						<artifactId>reflow-velocity-tools</artifactId>
+						<version>1.1.1</version>
 					</dependency>
-					<!-- Reflow skin requires Velocity >= 1.7  -->
+					<!-- Reflow skin requires Velocity >= 1.7 -->
 					<dependency>
-					<groupId>org.apache.velocity</groupId>
-					<artifactId>velocity</artifactId>
-					<version>1.7</version>
+						<groupId>org.apache.velocity</groupId>
+						<artifactId>velocity</artifactId>
+						<version>1.7</version>
 					</dependency>
 				</dependencies>
 			</plugin>
+
+			<!-- Generate a PDF from documentation -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pdf-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>pdf</id>
+						<phase>site</phase>
+						<goals>
+							<goal>pdf</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
+							<includeReports>false</includeReports>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
 			<!-- Description and configuration of Github repository -->
 			<plugin>
 				<groupId>com.github.github</groupId>
 				<artifactId>site-maven-plugin</artifactId>
 				<version>0.12</version>
 				<configuration>
-					<encoding>utf-8</encoding>
+					<encoding>${file.encoding}</encoding>
 					<message>Maven artifacts for ${project.version}</message>
 					<!-- git commit message -->
 					<noJekyll>true</noJekyll>
@@ -304,6 +372,7 @@
 					</execution>
 				</executions>
 			</plugin>
+
 			<!-- Configure main class execution entry point -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -313,6 +382,7 @@
 					<mainClass>${mainClass}</mainClass>
 				</configuration>
 			</plugin>
+
 			<!-- Version Eye Dependencies survey -->
 			<plugin>
 				<groupId>com.versioneye</groupId>
@@ -325,24 +395,14 @@
 		</plugins>
 	</build>
 
-	<inceptionYear>2018</inceptionYear>
-	<url>https://github.com/SnapGames/singleclassgame/wiki</url>
-	<organization>
-		<name>SnapGames</name>
-		<url>http://snapgames.fr/</url>
-	</organization>
-	<scm>
-		<url>https://github.com/SnapGames/singleclassgame</url>
-		<connection>scm:git:https://github.com/SnapGames/singleclassgame.git</connection>
-		<developerConnection>scm:git:https://github.com/SnapGames/singleclassgame.git</developerConnection>
-		<tag>${project.version}</tag>
-	</scm>
-	<issueManagement>
-		<url>https://github.com/SnapGames/singleclassgame/issues</url>
-		<system>github</system>
-	</issueManagement>
-	<ciManagement>
-		<system>travis-ci</system>
-		<url>https://travis-ci.org/SnapGames/singleclassgame</url>
-	</ciManagement>
+	<!-- fix issue on build about missing version attribute -->
+	<reporting>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-project-info-reports-plugin</artifactId>
+				<version>2.9</version>
+			</plugin>
+		</plugins>
+	</reporting>
 </project>

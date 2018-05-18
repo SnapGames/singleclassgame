@@ -43,7 +43,7 @@ public class Game extends JPanel {
 	private static int HEIGHT = 400;
 	private static float SCALE = 2.0f;
 
-	private float FPS = 30.0f;
+	private float FPS = 60.0f;
 	private float fpsDelay = 1000.0f / FPS;
 
 	private JFrame frame;
@@ -141,9 +141,13 @@ public class Game extends JPanel {
 	class GameObject {
 		String name = "";
 
-		float x = 0, y = 0, width = 16, height = 16;
-		float dx = 0, dy = 0;
+		float ax = 0.0f, ay = 0.0f;
+		float dx = 0.0f, dy = 0.0f;
+		float x = 0.0f, y = 0.0f, width = 16.0f, height = 16.0f;
 		float friction = 0.89f;
+		float elasticity = 0.025f;
+		float mass = 0.0f;
+		float gravity = 0.981f;
 
 		BufferedImage image = null;
 
@@ -151,18 +155,15 @@ public class Game extends JPanel {
 
 		Color debugColor = Color.GREEN;
 
-		float moveVelocity = 4.0f;
+		float moveAccel = 4.0f;
 
 		/**
 		 * CRete a new Object entity with a <code>name</code> and a position
 		 * <code>(x,y)</code>.
 		 * 
-		 * @param name
-		 *            the name of this object.
-		 * @param x
-		 *            the X position of this object.
-		 * @param y
-		 *            the Y position of this object.
+		 * @param name the name of this object.
+		 * @param x    the X position of this object.
+		 * @param y    the Y position of this object.
 		 */
 		GameObject(String name, float x, float y) {
 			this.name = name;
@@ -170,41 +171,31 @@ public class Game extends JPanel {
 			this.y = y;
 		}
 
-		public void setVelocity(float dx, float dy) {
-			this.dx = dx;
-			this.dy = dy;
-		}
-
 		public void setDebugColor(Color debugColor) {
 			this.debugColor = debugColor;
 		}
 
 		public void update(float elapsed) {
-			this.x += this.dx * elapsed;
-			this.y += this.dy * elapsed;
-			dx *= friction;
-			dy *= friction;
-			if (dx < 0.1) {
+			// compute velocity
+			this.dx = (this.ax / this.mass) * elapsed;
+			this.dy = ((this.ay / this.mass)+this.mass*(this.gravity)) * elapsed;
+
+			// fix velocity min.
+			if (Math.abs(dx) < 0.01) {
 				dx = 0.0f;
 			}
-			if (dy < 0.1) {
+			if (Math.abs(dy) < 0.01) {
 				dy = 0.0f;
 			}
-		}
 
-		public void setPosition(float x, float y) {
-			this.x = x;
-			this.y = y;
-		}
+			// Apply friction factor (will be changed when collision detection will work).
+			this.dx *= this.friction;
+			this.dy *= this.friction;
 
-		public void setPriority(int priority) {
-			this.priority = priority;
-		}
+			// compute position
+			this.x += this.dx * elapsed;
+			this.y += this.dy * elapsed;
 
-		public void setImage(BufferedImage image) {
-			this.image = image;
-			this.width = image.getWidth();
-			this.height = image.getHeight();
 		}
 
 		public void render(Graphics2D g) {
@@ -219,6 +210,43 @@ public class Game extends JPanel {
 					g.drawLine((int) x, (int) y, (int) (x + dx), (int) (y + dy));
 				}
 			}
+		}
+
+		public void setVelocity(float dx, float dy) {
+			this.dx = dx;
+			this.dy = dy;
+		}
+
+		public void setAcceleration(float ax, float ay) {
+			this.ax = ax;
+			this.ay = ay;
+		}
+
+		public void setMoveStep(float step) {
+			this.moveAccel = step;
+		}
+
+		public void setPosition(float x, float y) {
+			this.x = x;
+			this.y = y;
+		}
+
+		public void setFriction(float friction) {
+			this.friction = friction;
+		}
+
+		public void setMass(float mass) {
+			this.mass = mass;
+		}
+
+		public void setPriority(int priority) {
+			this.priority = priority;
+		}
+
+		public void setImage(BufferedImage image) {
+			this.image = image;
+			this.width = image.getWidth();
+			this.height = image.getHeight();
 		}
 
 	}
@@ -294,22 +322,34 @@ public class Game extends JPanel {
 		 */
 		@Override
 		public void keyPressed(KeyEvent e) {
+			boolean playerMove = false;
+
 			if (kil.keys[KeyEvent.VK_UP]) {
-				player.dy = -player.moveVelocity;
+				player.ay = -player.moveAccel;
+				playerMove = true;
 			}
 			if (kil.keys[KeyEvent.VK_DOWN]) {
-				player.dy = player.moveVelocity;
+				player.ay = player.moveAccel;
+				playerMove = true;
 			}
 			if (kil.keys[KeyEvent.VK_LEFT]) {
-				player.dx = -player.moveVelocity;
+				player.ax = -player.moveAccel;
+				playerMove = true;
 			}
 
 			if (kil.keys[KeyEvent.VK_RIGHT]) {
-				player.dx = player.moveVelocity;
+				player.ax = player.moveAccel;
+				playerMove = true;
 			}
 			if (kil.keys[KeyEvent.VK_SPACE]) {
+				player.ax = 0.0f;
+				player.ay = 0.0f;
 				player.dx = 0.0f;
 				player.dy = 0.0f;
+			}
+			if (!playerMove) {
+				player.ax = 0.0f;
+				player.ay = 0.0f;
 			}
 		}
 
@@ -320,8 +360,8 @@ public class Game extends JPanel {
 		 */
 		@Override
 		public void keyReleased(KeyEvent e) {
-			// Nothing to do here.
-
+			player.ax = 0.0f;
+			player.ay = 0.0f;
 		}
 
 		/*
@@ -370,8 +410,11 @@ public class Game extends JPanel {
 		kil.add(new GameKeyInput());
 
 		player = new GameObject("player", 50, 50);
+		player.setFriction(0.80f);
+		player.setMoveStep(2.0f);
 		player.setPriority(1);
 		player.setDebugColor(Color.RED);
+		player.setMass(10.0f);
 		add(player);
 
 		// add specific game player key listener
@@ -381,7 +424,8 @@ public class Game extends JPanel {
 			float posX = (float) (Math.random() * WIDTH / 2);
 			float posY = (float) (Math.random() * HEIGHT / 2);
 			GameObject enemy = new GameObject("enemy_" + i, posX, posY);
-			player.setPriority(2 + i);
+			enemy.setMass(20.0f);
+			enemy.setPriority(2 + i);
 			add(enemy);
 		}
 	}
@@ -398,21 +442,21 @@ public class Game extends JPanel {
 		while (!exit) {
 			currentTime = System.nanoTime();
 			if (previousTime > 0) {
-				elapsed = (currentTime - previousTime) / 1000000.0f;
+				elapsed = (currentTime - previousTime) / 10000000.0f;
 				if (elapsed < 0) {
 					elapsed = 1;
 				}
 				update(elapsed);
 			}
-			render(String.format("c:%2d t:%4d fps:%3d", framesCount, timeFrames, realFPS));
+			render(String.format("c:%02d t:%04d fps:%03d", framesCount, timeFrames, realFPS));
 			framesCount += 1;
-			timeFrames += elapsed;
+			timeFrames += fpsDelay;
 			if (timeFrames > 1000) {
 				realFPS = framesCount;
 				framesCount = 0;
 				timeFrames = 0;
 			}
-			wait(elapsed);
+			wait(fpsDelay - elapsed);
 			previousTime = currentTime;
 		}
 		dispose();
@@ -437,8 +481,7 @@ public class Game extends JPanel {
 	/**
 	 * Update all the objects of the game.
 	 * 
-	 * @param elapsed
-	 *            time elapsed since previous call.
+	 * @param elapsed time elapsed since previous call.
 	 */
 	public void update(float elapsed) {
 		if (objects != null && objects.size() > 0) {
@@ -453,23 +496,29 @@ public class Game extends JPanel {
 	 * Constrained {@link GameObject} <code>object</code> to the Play Zone
 	 * <code>constrainedZone</code>.
 	 * 
-	 * @param constrainedZone
-	 *            the zone where to constrains game object.
-	 * @param object
-	 *            the object to be constrained to the play zone.
+	 * @param constrainedZone the zone where to constrains game object.
+	 * @param object          the object to be constrained to the play zone.
 	 */
 	private void constrainsObjectToPlayZone(Dimension constrainedZone, GameObject object) {
 
-		if (object.x < 0) {
+		if (object.x <= 0) {
+			object.ax = 0;
+			object.dx = 0;
 			object.x = 0;
 		}
-		if (object.y < 0) {
-			object.y = 0;
-		}
-		if (object.x > constrainedZone.width - object.width) {
+		if (object.x >= constrainedZone.width - object.width) {
+			object.ax = 0;
+			object.dx = 0;
 			object.x = constrainedZone.width - object.width;
 		}
-		if (object.y > constrainedZone.height - object.height) {
+		if (object.y <= 0) {
+			object.ay = 0;
+			object.dy = 0;
+			object.y = 0;
+		}
+		if (object.y >= constrainedZone.height - object.height) {
+			object.ax = 0;
+			object.dy = 0;
 			object.y = constrainedZone.height - object.height;
 		}
 	}
@@ -521,8 +570,7 @@ public class Game extends JPanel {
 	/**
 	 * Add a GameObject to the list of object managed by the Game.
 	 * 
-	 * @param o
-	 *            the GameObject to add to the list.
+	 * @param o the GameObject to add to the list.
 	 */
 	public void add(GameObject o) {
 		objects.add(o);
