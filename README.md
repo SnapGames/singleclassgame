@@ -4,26 +4,26 @@
 
 ## Presentation
 
-A Single Class Game attempt to bring in a minimalistic scope all the commons and 
+A Single Class Game attempt to bring in a minimalistic scope all the commons and
 standards game stack.
 
-This small project based on some knowledge found on the internet (so, you know 
-that internet is the truth :) You will be happy to dicosver a simple way to 
+This small project based on some knowledge found on the internet (so, you know
+that internet is the truth :) You will be happy to dicosver a simple way to
 develop and build a small java game.
 
 ## Project structure
 
-The game project git repository contains: 
+The game project git repository contains:
 
-```
+```txt
 singleclassgame
-|_ .github                   \      
-|  |_ ISSUE_TEMPLATE          |         
-|     |_ Bug_report.md         > Some github specific files
-|     |_ Feature_request.md   |
-|                            /
+|_ .github                               \
+|  |_ ISSUE_TEMPLATE                      |
+|     |_ Bug_report.md                     > Some github specific files
+|     |_ Feature_request.md               |
+|                                        /
 |_ src
-|  |_ main                               \ 
+|  |_ main                               \
 |  |  |_ fr.snapgames.game.oneclassgame   |
 |  |  |  |_ Game.java                      > Project resources
 |  |_ resources                           |
@@ -31,8 +31,8 @@ singleclassgame
 |        |_ application.ico              /
 |
 |_ .travis.yml                           >  Continuous build config file
-| 
-|_ CODE_OF_CONDUCT.md                    \  Other specific 
+|
+|_ CODE_OF_CONDUCT.md                    \  Other specific
 |_ LICENSE                               /  github and license file
 |
 |_ README.md                             > this fantastic file
@@ -40,13 +40,12 @@ singleclassgame
 
 ```
 
-
 ## Game Structure
 
-The main parent class is Game, from the Game.java file.  But all classes which 
+The main parent class is Game, from the Game.java file.  But all classes which
 used here are declared into the Game class.
 
-```
+```txt
   Game
   |_ KeyInputListener
   |_ GameObject
@@ -61,8 +60,19 @@ used here are declared into the Game class.
 - `GameKeyListener` is a key command manager for the Game itself. this is where  the **exit** and **pause** request are processed,
 - `PlayerKeyListener` is a specific key listener to animate and move the **player** `GameObject` instance.
 
+## Screenshot
+
+<figure>
+  <img src="src/main/resources/res/docs/images/screenshot-debug.png" title="this is a screenshot" alt="screenshot of debug mode"/>
+  <figcaption>figure 1 - this is screenshot for debug mode</figcaption>
+</figure>
+
+<figure>
+  <img src="src/main/resources/res/docs/images/screenshot-debug.png" title="this is a screenshot" alt="screenshot of display mode"/>
+  <figcaption>figure 2 - this is screenshot for display mode</figcaption>
+</figure>
+
 
 To be continued ...
-
 
 Fred D.
