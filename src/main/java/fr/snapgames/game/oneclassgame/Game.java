@@ -13,15 +13,31 @@ import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
+
+import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Developer;
+import org.apache.maven.model.Model;
+import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
+import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -42,6 +58,174 @@ import javax.swing.JPanel;
  *
  */
 public class Game extends JPanel {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	private static final Logger logger = LoggerFactory.getLogger(Game.class);
+
+	/**
+	 * Window and Rendering size
+	 */
+	private static float scale = 1.5f;
+
+	/**
+	 * Rendering pace
+	 */
+	private float FPS = 30.0f;
+	private float fpsDelay = 1000.0f / FPS;
+	/**
+	 * Computation pace
+	 */
+	private float UPS = 60.0f;
+	private float upsDelay = 1000.0f / UPS;
+
+	// Windows Dimension (Scale factor applied)
+	private Dimension dim;
+	// Play zone dimension
+	private Dimension playZone;
+
+	/**
+	 * Internal flag to request EXIT.
+	 */
+	private boolean exit = false;
+	/**
+	 * internal flag to request pause mode.
+	 */
+	private boolean pause = false;
+	/**
+	 * internal debug level to track things id <code>debug</code>>0.
+	 */
+	private int debug = 2;
+	/**
+	 * rendering buffer
+	 */
+	private BufferedImage buffer;
+
+	/**
+	 * Game objects to be managed.
+	 */
+	private List<GameObject> objects = new ArrayList<>();
+
+	/**
+	 * The main input key listener.
+	 */
+	KeyInputListener kil = null;
+
+	/**
+	 * THE player for this game.
+	 */
+	GameObject player;
+
+	/**
+	 * the main resource manager to try and share things.
+	 */
+	private ResourceManager resourceMgr;
+
+	/**
+	 * The world object contains physic constrains for the physic engine system.
+	 */
+	private World world;
+	private Window window;
+
+	/**
+	 * This integrated class parse Maven model to expose a resulting list of
+	 * dependencies.
+	 * 
+	 * @author Frédéric Delorme
+	 *
+	 */
+	class VersionTracker {
+
+		Model model = null;
+
+		public VersionTracker() {
+			try {
+				MavenXpp3Reader reader = new MavenXpp3Reader();
+				if ((new File("pom.xml")).exists())
+					model = reader.read(new FileReader("pom.xml"));
+
+				else
+					model = reader.read(new InputStreamReader(Game.class.getResourceAsStream(
+							"/META-INF/maven/de.scrum-master.stackoverflow/aspectj-introduce-method/pom.xml")));
+			} catch (IOException | XmlPullParserException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		}
+
+		void extractProjectInformation() {
+			List<Dependency> deps = getDependencyList();
+			logger.info("project name: " + getName());
+			logger.info("project description: " + getDescription());
+			logger.info("project version: " + getVersion());
+			logger.info("dependency list:");
+			int i = 0;
+			for (Dependency dep : deps) {
+				logger.info((i++) + " - " + dep.getType() + "://" + dep.getGroupId() + ":" + dep.getArtifactId() + ":"
+						+ dep.getVersion());
+			}
+		}
+
+		/**
+		 * Parse pom.xml file to extract Maven dependencies for the project.
+		 * 
+		 * @return List of corresponding dependencies.
+		 * @see https://stackoverflow.com/questions/3697449/retrieve-version-from-maven-pom-xml-in-code
+		 */
+		List<Dependency> getDependencyList() {
+			return (model != null ? model.getDependencies() : new ArrayList<Dependency>());
+		}
+
+		/**
+		 * Retrive list of developers
+		 * 
+		 * @return
+		 */
+		List<Developer> getDevelopers() {
+			return (model != null ? model.getDevelopers() : new ArrayList<Developer>());
+		}
+
+		/**
+		 * Retrieve description
+		 * 
+		 * @return
+		 */
+		String getDescription() {
+			return (model != null ? model.getDescription() : "");
+		}
+
+		/**
+		 * Retrieve project name.
+		 * 
+		 * @return
+		 */
+		String getName() {
+			return (model != null ? model.getName() : "");
+		}
+
+		/**
+		 * Retrieve project version.
+		 * 
+		 * @return
+		 */
+		String getVersion() {
+			return (model != null ? model.getVersion() : "");
+		}
+
+		/**
+		 * Retrieve inception year
+		 * 
+		 * @return
+		 */
+		String getInceptionYear() {
+			return (model != null ? model.getInceptionYear() : "");
+		}
+
+	}
 
 	/**
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
@@ -145,78 +329,17 @@ public class Game extends JPanel {
 	}
 
 	/**
-	 * Window and Rendering size
-	 */
-	private static int WIDTH = 640;
-	private static int HEIGHT = 400;
-	private static float SCALE = 1.5f;
-
-	/**
-	 * Rendering pace
-	 */
-	private float FPS = 30.0f;
-	private float fpsDelay = 1000.0f / FPS;
-	/**
-	 * Computation pace
-	 */
-	private float UPS = 60.0f;
-	private float upsDelay = 1000.0f / UPS;
-
-	// Windows Dimension (Scale factor applied)
-	private Dimension dim;
-	// Play zone dimension
-	private Dimension playZone;
-
-	/**
-	 * Internal flag to request EXIT.
-	 */
-	private boolean exit = false;
-	/**
-	 * internal flag to request pause mode.
-	 */
-	private boolean pause = false;
-	/**
-	 * internal debug level to track things id <code>debug</code>>0.
-	 */
-	private int debug = 2;
-	/**
-	 * rendering buffer
-	 */
-	private BufferedImage buffer;
-
-	/**
-	 * Game objects to be managed.
-	 */
-	private List<GameObject> objects = new ArrayList<>();
-
-	/**
-	 * The main input key listener.
-	 */
-	KeyInputListener kil = null;
-
-	/**
-	 * THE player for this game.
-	 */
-	GameObject player;
-
-	/**
-	 * the main resource manager to try and share things.
-	 */
-	private ResourceManager resourceMgr;
-
-	/**
-	 * The world object contains physic constrains for the physic engine system.
-	 */
-	private World world;
-	private Window window;
-
-	/**
 	 * the ResourceUnknownException class is thrown when a resource is not found.
 	 * 
 	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
 	 *
 	 */
 	public class ResourceUnknownException extends Exception {
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = 1L;
 
 		/**
 		 * @param message
@@ -592,9 +715,11 @@ public class Game extends JPanel {
 		 * @param g
 		 */
 		public void render(Graphics2D g) {
+			// if image exists in object, draw image.
 			if (image != null) {
 				g.drawImage(image, (int) position.x, (int) position.y, (int) width, (int) height, null);
 			}
+			// if debug mode level >0, draw debug info
 			if (debug > 1) {
 				g.setColor(debugColor);
 				g.drawRect((int) position.x, (int) position.y, (int) width, (int) height);
@@ -603,22 +728,22 @@ public class Game extends JPanel {
 					g.setColor(Color.CYAN);
 					g.drawLine((int) position.x, (int) position.y, (int) (position.x + velocity.x),
 							(int) (position.y + velocity.y));
-				}
-				if (debug > 3) {
-					g.setColor(Color.RED);
-					g.drawOval((int) (position.x + offset.x), (int) (position.y + offset.y), 2, 2);
-					g.setColor(Color.CYAN);
-					g.drawLine((int) (position.x + (offset.x)), (int) (position.y + (offset.y)),
-							(int) (position.x + (offset.x) + (velocity.x * 4)),
-							(int) (position.y + (offset.y) + (velocity.y * 4)));
-					g.drawString(String.format("v:(%4.2f,%4.2f)", velocity.x, velocity.y),
-							(int) (position.x + width + 4), (int) position.y + 20);
-					g.setColor(Color.GREEN);
-					g.drawLine((int) (position.x + (offset.x)), (int) (position.y + (offset.y)),
-							(int) (position.x + (offset.x) + (acceleration.x * 4)),
-							(int) (position.y + (offset.y) + (acceleration.y * 4)));
-					g.drawString(String.format("a:(%4.2f,%4.2f)", acceleration.x, acceleration.y),
-							(int) (position.x + width + 4), (int) position.y + 30);
+					if (debug > 3) {
+						g.setColor(Color.RED);
+						g.drawOval((int) (position.x + offset.x), (int) (position.y + offset.y), 2, 2);
+						g.setColor(Color.CYAN);
+						g.drawLine((int) (position.x + (offset.x)), (int) (position.y + (offset.y)),
+								(int) (position.x + (offset.x) + (velocity.x * 4)),
+								(int) (position.y + (offset.y) + (velocity.y * 4)));
+						g.drawString(String.format("v:(%4.2f,%4.2f)", velocity.x, velocity.y),
+								(int) (position.x + width + 4), (int) position.y + 20);
+						g.setColor(Color.GREEN);
+						g.drawLine((int) (position.x + (offset.x)), (int) (position.y + (offset.y)),
+								(int) (position.x + (offset.x) + (acceleration.x * 4)),
+								(int) (position.y + (offset.y) + (acceleration.y * 4)));
+						g.drawString(String.format("a:(%4.2f,%4.2f)", acceleration.x, acceleration.y),
+								(int) (position.x + width + 4), (int) position.y + 30);
+					}
 				}
 			}
 		}
@@ -900,6 +1025,177 @@ public class Game extends JPanel {
 
 	}
 
+	static class Configuration {
+
+		private static final Logger logger = LoggerFactory.getLogger(Configuration.class);
+
+		private static final String UNKNOWN_CONFIG_KEY = "UNKNOWN_CONFIG_KEY";
+		public static Configuration instance = new Configuration();
+		Properties props;
+
+		private Configuration() {
+			props = new Properties();
+			load();
+		}
+
+		/**
+		 * 
+		 */
+		private void load() {
+			try {
+				if (props == null) {
+					props = new Properties();
+				}
+				props.load(Game.class.getResourceAsStream("/res/configuration.properties"));
+				for (Entry<Object, Object> prop : props.entrySet()) {
+					logger.info(String.format("config %s : %s", prop.getKey(), prop.getValue()));
+				}
+
+			} catch (IOException e) {
+				System.err.println("Unable to read configuration file");
+				System.exit(-1);
+			}
+		}
+
+		/**
+		 * request a configuration reload from file.
+		 */
+		public static void reload() {
+			Configuration.instance.load();
+		}
+
+		/**
+		 * Save configuration to configuration.properties file.
+		 */
+		private void store() {
+
+			try {
+				File f = new File(Game.class.getResource("/").getPath() + "/configuration.properties");
+				OutputStream out = new FileOutputStream(f);
+				props.store(out, "Update configuration");
+			} catch (IOException e) {
+				System.err.println("Unable to store configuration file");
+				System.exit(-1);
+			}
+		}
+
+		/**
+		 * request a configuration reload from file.
+		 */
+		public static void save() {
+			Configuration.instance.store();
+		}
+
+		/**
+		 * retrieve a value from configuraiton.properties file.
+		 * 
+		 * @param key
+		 *            key configuration to be retrieved.
+		 * 
+		 * @return String value
+		 */
+		private String getConfig(String key) {
+			if (props.containsKey(key)) {
+				return props.getProperty(key);
+			} else {
+				return UNKNOWN_CONFIG_KEY;
+			}
+		}
+
+		/**
+		 * retrieve a <code>int</code> value for configuration <code>key</code>.
+		 * 
+		 * @param key
+		 * @return
+		 */
+		public static int getInteger(String key, int defaultValue) {
+			String value = Configuration.instance.getConfig(key);
+			if (value.equals(UNKNOWN_CONFIG_KEY)) {
+				return defaultValue;
+			}
+			return Integer.parseInt(value);
+		}
+
+		/**
+		 * retrieve a <code>float</code> value for configuration <code>key</code>.
+		 * 
+		 * @param key
+		 * @return
+		 */
+		public static float getFloat(String key, float defaultValue) {
+			String value = Configuration.instance.getConfig(key);
+			if (value.equals(UNKNOWN_CONFIG_KEY)) {
+				return defaultValue;
+			}
+			return Float.parseFloat(value);
+		}
+
+		/**
+		 * retrieve a <code>boolean</code> value for configuration <code>key</code>.
+		 * 
+		 * @param key
+		 * @return
+		 */
+		public static boolean getBoolean(String key, boolean defaultValue) {
+			String value = Configuration.instance.getConfig(key);
+			if (value.equals(UNKNOWN_CONFIG_KEY)) {
+				return defaultValue;
+			}
+			return Boolean.parseBoolean(value);
+		}
+
+		/**
+		 * retrieve a <code>String</code> value for configuration <code>key</code>.
+		 * 
+		 * @param key
+		 * @return
+		 */
+		public static String get(String key, String defaultValue) {
+			String value = Configuration.instance.getConfig(key);
+			if (value.equals(UNKNOWN_CONFIG_KEY)) {
+				return defaultValue;
+			}
+			return value;
+		}
+
+		private void setPropertyInt(String key, int value) {
+			props.setProperty(key, "" + value);
+
+		}
+
+		private void setPropertyFloat(String key, float value) {
+			props.setProperty(key, "" + value + "f");
+
+		}
+
+		private void setPropertyBoolean(String key, boolean value) {
+			props.setProperty(key, "" + value);
+
+		}
+
+		private void setPropertyString(String key, String value) {
+			props.setProperty(key, value);
+
+		}
+
+		public static void setInteger(String key, int value) {
+			Configuration.instance.setPropertyInt(key, value);
+		}
+
+		public static void setFloat(String key, float value) {
+			Configuration.instance.setPropertyFloat(key, value);
+		}
+
+		public static void setBoolean(String key, boolean value) {
+			Configuration.instance.setPropertyBoolean(key, value);
+		}
+
+		public static void setString(String key, String value) {
+			Configuration.instance.setPropertyString(key, value);
+		}
+
+	}
+
 	/**
 	 * Initialize all things about game !
 	 */
@@ -912,9 +1208,17 @@ public class Game extends JPanel {
 	 * 
 	 */
 	private void createWindow(String[] args) {
-		dim = new Dimension((int) (WIDTH * SCALE), (int) (HEIGHT * SCALE));
-		playZone = new Dimension(WIDTH, HEIGHT);
-		buffer = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
+		int width = Configuration.getInteger("window.width", 320);
+		int height = Configuration.getInteger("window.height", 320);
+		String title = Configuration.get("window.title", "SingleClassGame");
+		scale = Configuration.getFloat("window.scale", 2.0f);
+		debug = Configuration.getInteger("debug.level", 1);
+
+		dim = new Dimension((int) (width * scale), (int) (height * scale));
+
+		playZone = new Dimension(dim.width, dim.height);
+
+		buffer = new BufferedImage(dim.width, dim.height, BufferedImage.TYPE_INT_ARGB);
 
 		kil = new KeyInputListener();
 
@@ -922,7 +1226,7 @@ public class Game extends JPanel {
 
 		resourceMgr = new ResourceManager();
 
-		window = new Window(this, "SinglClassGame");
+		window = new Window(this, title);
 		window.setKeyInputListener(kil);
 		window.show();
 
@@ -934,9 +1238,19 @@ public class Game extends JPanel {
 	 * @param args
 	 */
 	public Game(String[] args) {
+		retrieveDependencies();
 		parseArgs(args);
 		createWindow(args);
 		initialize(args);
+	}
+
+	/**
+	 * Retrieve Maven dependency list.
+	 */
+	private void retrieveDependencies() {
+		VersionTracker vt = new VersionTracker();
+		vt.extractProjectInformation();
+
 	}
 
 	/**
@@ -969,8 +1283,8 @@ public class Game extends JPanel {
 		kil.register(new PlayerKeyInput(player, kil));
 
 		for (int i = 0; i < 10; i++) {
-			float posX = (float) (Math.random() * WIDTH / 2);
-			float posY = (float) (Math.random() * HEIGHT / 2);
+			float posX = (float) (Math.random() * dim.width / 2);
+			float posY = (float) (Math.random() * dim.height / 2);
 			GameObject enemy = new GameObject("enemy_" + i, posX, posY);
 			try {
 				enemy.setImage(resourceMgr.getImage("enemyBall"));
@@ -1007,9 +1321,9 @@ public class Game extends JPanel {
 				}
 				update(elapsed);
 			}
-			if(elapsed<=fpsDelay) {
-				render(String.format("debug:%d c:%02d t:%04d fps:%03d pause:%s", debug, framesCount, timeFrames, realFPS,
-					(pause ? "on" : "off")));
+			if (elapsed <= fpsDelay) {
+				render(String.format("debug:%d c:%02d t:%04d fps:%03d pause:%s", debug, framesCount, timeFrames,
+						realFPS, (pause ? "on" : "off")));
 			}
 			postOperation();
 			framesCount += 1;
@@ -1105,24 +1419,35 @@ public class Game extends JPanel {
 	 */
 	public void render(String fps) {
 
+		// retrieve graphic API
 		Graphics2D g = (Graphics2D) buffer.getGraphics();
-		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
+		// set rendering parameters
+		// pixel anti-aliasing
+		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		// text anti-aliasing.
+		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+		// clear view before redraw things
 		g.setColor(Color.BLACK);
 		g.fillRect(0, 0, buffer.getWidth(), buffer.getHeight());
 
+		// if objects in the list, draw all those things
 		if (objects != null && objects.size() > 0) {
 			for (GameObject o : objects) {
 				o.render(g);
 			}
 		}
+		// add some debug information
 		if (debug > 0) {
 			g.setColor(Color.ORANGE);
 			g.drawString(fps, 10, buffer.getHeight() - 20);
 		}
 
+		// release API
 		g.dispose();
+
+		// copy rendering buffer to window.
 		drawToScreen();
 	}
 
@@ -1131,7 +1456,8 @@ public class Game extends JPanel {
 	 */
 	private void drawToScreen() {
 		Graphics2D gbuff = window.getGraphics();
-		gbuff.drawImage(buffer, 0, 0, (int) (WIDTH * SCALE), (int) (HEIGHT * SCALE), 0, 0, WIDTH, HEIGHT, null);
+		gbuff.drawImage(buffer, 0, 0, (int) (dim.width * scale), (int) (dim.height * scale), 0, 0, dim.width,
+				dim.height, null);
 		gbuff.dispose();
 	}
 
@@ -1177,8 +1503,9 @@ public class Game extends JPanel {
 			case "w":
 				int valueWidth = Integer.parseInt(parts[1]);
 				if (valueWidth > 0 && valueWidth < 2048) {
-					WIDTH = valueWidth;
-					System.out.println(String.format("Window width set to %d", WIDTH));
+					dim.width = valueWidth;
+					System.out.println(String.format("Window width set to %d", dim.width));
+					Configuration.setInteger("window.width", dim.width);
 				} else {
 					System.err.println(String.format("Unable to set height to %d (min=1,max=2048)", valueWidth));
 				}
@@ -1187,8 +1514,9 @@ public class Game extends JPanel {
 			case "h":
 				int valueHeight = Integer.parseInt(parts[1]);
 				if (valueHeight > 0 && valueHeight < 2048) {
-					HEIGHT = valueHeight;
-					System.out.println(String.format("Window height set to %d", HEIGHT));
+					dim.height = valueHeight;
+					System.out.println(String.format("Window height set to %d", dim.height));
+					Configuration.setInteger("window.height", dim.height);
 				} else {
 					System.err.println(String.format("Unable to set height to %d (min=1,max=2048)", valueHeight));
 				}
@@ -1197,8 +1525,9 @@ public class Game extends JPanel {
 			case "s":
 				float valueScale = Float.parseFloat(parts[1]);
 				if (valueScale >= 1.0f && valueScale <= 4.0f) {
-					SCALE = valueScale;
+					scale = valueScale;
 					System.out.println(String.format("Window scale set to %f", valueScale));
+					Configuration.setFloat("window.scale", scale);
 				} else {
 					System.err.println(String.format("Unable to set scale value to %f (min=1,max=4)", valueScale));
 				}
@@ -1209,6 +1538,7 @@ public class Game extends JPanel {
 				if (value >= 0 && value <= 9) {
 					debug = value;
 					System.out.println(String.format("debug mode set to %d", debug));
+					Configuration.setInteger("debug.level", debug);
 				} else {
 					System.err.println(String.format("Unable to set value to %d, (min=0,max=9)", value));
 				}
@@ -1217,6 +1547,7 @@ public class Game extends JPanel {
 				break;
 			}
 		}
+		Configuration.save();
 	}
 
 	/**
