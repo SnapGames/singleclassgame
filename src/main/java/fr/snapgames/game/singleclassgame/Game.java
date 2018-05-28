@@ -9,9 +9,12 @@ package fr.snapgames.game.singleclassgame;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
+import java.awt.Point;
 import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -19,6 +22,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -58,7 +63,6 @@ import org.slf4j.LoggerFactory;
  *
  */
 public class Game extends JPanel {
-
 	/**
 	 * 
 	 */
@@ -115,9 +119,9 @@ public class Game extends JPanel {
 	KeyInputListener kil = null;
 
 	/**
-	 * THE player for this game.
+	 * the object Factory.
 	 */
-	GameObject player;
+	Factory factory = null;
 
 	/**
 	 * the main resource manager to try and share things.
@@ -128,7 +132,16 @@ public class Game extends JPanel {
 	 * The world object contains physic constrains for the physic engine system.
 	 */
 	private World world;
+
+	/**
+	 * The window where to sdraw the game view.
+	 */
 	private Window window;
+
+	/**
+	 * THE player for this game.
+	 */
+	GameObject player;
 
 	/**
 	 * This integrated class parse Maven model to expose a resulting list of
@@ -151,7 +164,7 @@ public class Game extends JPanel {
 					model = reader.read(new InputStreamReader(Game.class.getResourceAsStream(
 							"/META-INF/maven/de.scrum-master.stackoverflow/aspectj-introduce-method/pom.xml")));
 			} catch (IOException | XmlPullParserException e) {
-				logger.error("Unable to retrieve data from maven `pom.xml` file",e);
+				logger.error("Unable to retrieve data from maven `pom.xml` file", e);
 			}
 
 		}
@@ -230,7 +243,7 @@ public class Game extends JPanel {
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 *
 	 */
-	public class Window {
+	class Window {
 		/**
 		 * rendering frame.
 		 */
@@ -306,8 +319,32 @@ public class Game extends JPanel {
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 *
 	 */
-	public class World {
+	class World {
 
+		/**
+		 * the default gravity value for this world (can be overridden at world
+		 * construction).
+		 */
+		Vector2D gravity = new Vector2D("gravity", 0.0f, -0.981f);
+
+		/**
+		 * List of forces to be applied to all objects. (would be changed in a next
+		 * version to introduce space gravity and attraction factor).
+		 */
+		List<Vector2D> forces = new ArrayList<>();
+
+		/**
+		 * List of available camera in this world.
+		 */
+		List<Camera> cameras = new ArrayList<>();
+		/**
+		 * the current active camera.
+		 */
+		Camera activeCam = null;
+
+		/**
+		 * Default world constructor.
+		 */
 		public World() {
 			super();
 		}
@@ -323,8 +360,46 @@ public class Game extends JPanel {
 			forces.add(gravity.multiply(-1.0f));
 		}
 
-		Vector2D gravity = new Vector2D(0.0f, -0.981f);
-		List<Vector2D> forces = new ArrayList<>();
+		/**
+		 * Add a camera to the world. if no default camera is set, add this as the
+		 * default one.
+		 * 
+		 * @param cam
+		 * @return
+		 */
+		public World addCamera(Camera cam) {
+			this.cameras.add(cam);
+			if (activeCam == null) {
+				this.activeCam = cam;
+			}
+			return this;
+		}
+
+		/**
+		 * Set the active camera for this world.
+		 * 
+		 * @param cam
+		 * @return
+		 */
+		World setActiveCamera(Camera cam) {
+			if (!cameras.contains(cam)) {
+				cameras.add(cam);
+			}
+			activeCam = cam;
+			return this;
+		}
+
+		/**
+		 * add a new force to this world.
+		 * 
+		 * @param force
+		 * @return
+		 */
+		public World addForce(Vector2D force) {
+			this.forces.add(force);
+			return this;
+		}
+
 	}
 
 	/**
@@ -333,7 +408,7 @@ public class Game extends JPanel {
 	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
 	 *
 	 */
-	public class ResourceUnknownException extends Exception {
+	class ResourceUnknownException extends Exception {
 
 		/**
 		 * 
@@ -356,7 +431,7 @@ public class Game extends JPanel {
 	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
 	 *
 	 */
-	public class ResourceManager {
+	class ResourceManager {
 		private Map<String, Object> objects = new HashMap<>();
 
 		/**
@@ -495,6 +570,8 @@ public class Game extends JPanel {
 	 *
 	 */
 	class Vector2D {
+		private String name;
+
 		/**
 		 * X axe factor.
 		 */
@@ -507,9 +584,10 @@ public class Game extends JPanel {
 		/**
 		 * Create a Vector2D
 		 */
-		Vector2D() {
+		Vector2D(String name) {
 			this.x = 0.0f;
 			this.y = 0.0f;
+			name = "v_noname";
 		}
 
 		/**
@@ -518,7 +596,8 @@ public class Game extends JPanel {
 		 * @param x
 		 * @param y
 		 */
-		Vector2D(float x, float y) {
+		Vector2D(String name, float x, float y) {
+			this.name = name;
 			this.x = x;
 			this.y = y;
 		}
@@ -540,7 +619,7 @@ public class Game extends JPanel {
 		 * @param v
 		 */
 		public Vector2D sub(Vector2D v) {
-			return new Vector2D(x - v.x, y - v.y);
+			return new Vector2D(this.name, x - v.x, y - v.y);
 		}
 
 		/**
@@ -581,7 +660,7 @@ public class Game extends JPanel {
 				y = y * s;
 			}
 
-			return new Vector2D(x, y);
+			return new Vector2D(this.name, x, y);
 		}
 
 		/**
@@ -595,6 +674,74 @@ public class Game extends JPanel {
 			return this.x * v1.x + this.y * v1.y;
 		}
 
+	}
+
+	/**
+	 * Bounding Box type can have 3 values.
+	 * 
+	 * @author Frédéric Delorme
+	 *
+	 */
+	enum BoundingBoxType {
+		NONE, RECTANGLE, CIRCLE, CAPSULE, POINTS;
+	}
+
+	/**
+	 * Bounding Box for any object managed by the system.
+	 * 
+	 * @author Frédéric Delorme
+	 *
+	 */
+	class BoundingBox {
+
+		/**
+		 * position for the boundingbox.
+		 */
+		Rectangle2D rect;
+		/**
+		 * diam1 is used for elipse1/circle/capsule BoundingBox type
+		 */
+		Ellipse2D elipse1;
+		Ellipse2D elipse2;
+		float e1e2Distance;
+		/**
+		 * list of specific points for POINT mode.
+		 */
+		Point[] points;
+
+		BoundingBoxType type;
+
+		public int intersect(BoundingBox b) {
+			switch (type) {
+			case NONE:
+				return 0;
+			case RECTANGLE:
+				return (b.rect.intersects(rect) ? 1 : 0);
+			case CIRCLE:
+				return (b.elipse1.intersects(rect) ? 1 : 0);
+			case CAPSULE:
+				// TODO to be implemented later.
+				return 0;
+			case POINTS:
+				// TODO to be implemented later.
+				return 0;
+			default:
+				return 0;
+			}
+		}
+
+		/**
+		 * Update bounding box according to GameObject size and position.
+		 * 
+		 * @param go
+		 */
+		public void update(GameObject go) {
+			this.rect = new Rectangle2D.Float(go.position.x, go.position.y, go.width, go.height);
+			this.elipse1 = new Ellipse2D.Float(go.position.x, go.position.y, go.width, go.height);
+			// TODO compute distance for CAPSULE.
+			// this.elipse2 = new Ellipse2D.Float(go.position.x, go.position.y, go.width,
+			// go.height);
+		}
 	}
 
 	/**
@@ -622,22 +769,22 @@ public class Game extends JPanel {
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 *
 	 */
-	class GameObject {
+	public class GameObject {
 
 		String name = "";
 
 		/**
 		 * Next generation GameObject ---- Start here ---->
 		 */
-		Vector2D acceleration = new Vector2D();
-		Vector2D velocity = new Vector2D();
-		Vector2D position = new Vector2D();
+		Vector2D acceleration = new Vector2D("acceleration");
+		Vector2D velocity = new Vector2D("velocity");
+		Vector2D position = new Vector2D("position");
 
-		Vector2D offset = new Vector2D();
-		Vector2D size = new Vector2D();
+		Vector2D offset = new Vector2D("offset");
+		Vector2D size = new Vector2D("size");
 
 		List<Vector2D> forces = new ArrayList<>();
-		Vector2D gravity = new Vector2D(0.0f, 0.981f);
+		Vector2D gravity = new Vector2D("gravity", 0.0f, 0.981f);
 
 		float scale = 1.0f;
 
@@ -657,6 +804,18 @@ public class Game extends JPanel {
 
 		Color color = Color.GREEN;
 
+		BoundingBox bBox;
+
+		/**
+		 * Create a new basic Object entity with a <code>name</code>.
+		 * 
+		 * @param name
+		 *            the name of this object.
+		 */
+		public GameObject(String name) {
+			this.name = name;
+		}
+
 		/**
 		 * Create a new Object entity with a <code>name</code> and a position
 		 * <code>(x,y)</code>.
@@ -669,7 +828,7 @@ public class Game extends JPanel {
 		 *            the Y position of this object.
 		 */
 		GameObject(String name, float x, float y) {
-			this.name = name;
+			this(name);
 			setPosition(x, y);
 		}
 
@@ -753,9 +912,10 @@ public class Game extends JPanel {
 		 * @param ax
 		 * @param ay
 		 */
-		public void setAcceleration(float ax, float ay) {
+		public GameObject setAcceleration(float ax, float ay) {
 			this.acceleration.x = ax;
 			this.acceleration.y = ay;
+			return this;
 		}
 
 		/**
@@ -764,9 +924,10 @@ public class Game extends JPanel {
 		 * @param dx
 		 * @param dy
 		 */
-		public void setVelocity(float dx, float dy) {
+		public GameObject setVelocity(float dx, float dy) {
 			this.velocity.x = dx;
 			this.velocity.y = dy;
+			return this;
 		}
 
 		/**
@@ -775,9 +936,10 @@ public class Game extends JPanel {
 		 * @param x
 		 * @param y
 		 */
-		public void setPosition(float x, float y) {
+		public GameObject setPosition(float x, float y) {
 			this.position.x = x;
 			this.position.y = y;
+			return this;
 		}
 
 		/**
@@ -785,8 +947,9 @@ public class Game extends JPanel {
 		 * 
 		 * @param scale
 		 */
-		public void setScale(float scale) {
+		public GameObject setScale(float scale) {
 			this.scale = scale;
+			return this;
 		}
 
 		/**
@@ -794,8 +957,9 @@ public class Game extends JPanel {
 		 * 
 		 * @param factor
 		 */
-		public void setMass(float factor) {
+		public GameObject setMass(float factor) {
 			this.mass = factor;
+			return this;
 		}
 
 		/**
@@ -803,8 +967,9 @@ public class Game extends JPanel {
 		 * 
 		 * @param factor
 		 */
-		public void setFriction(float factor) {
+		public GameObject setFriction(float factor) {
 			this.friction = factor;
+			return this;
 		}
 
 		/**
@@ -812,8 +977,9 @@ public class Game extends JPanel {
 		 * 
 		 * @param factor
 		 */
-		public void setElasticity(float factor) {
+		public GameObject setElasticity(float factor) {
 			this.elasticity = factor;
+			return this;
 		}
 
 		/**
@@ -821,8 +987,9 @@ public class Game extends JPanel {
 		 * 
 		 * @param debugColor
 		 */
-		public void setDebugColor(Color debugColor) {
+		public GameObject setDebugColor(Color debugColor) {
 			this.debugColor = debugColor;
+			return this;
 		}
 
 		/**
@@ -830,8 +997,9 @@ public class Game extends JPanel {
 		 * 
 		 * @param priority
 		 */
-		public void setPriority(int priority) {
+		public GameObject setPriority(int priority) {
 			this.priority = priority;
+			return this;
 		}
 
 		/**
@@ -839,10 +1007,11 @@ public class Game extends JPanel {
 		 * 
 		 * @param image
 		 */
-		public void setImage(BufferedImage image) {
+		public GameObject setImage(BufferedImage image) {
 			this.image = image;
 			this.width = image.getWidth();
 			this.height = image.getHeight();
+			return this;
 		}
 
 		/**
@@ -850,8 +1019,9 @@ public class Game extends JPanel {
 		 * 
 		 * @param f
 		 */
-		public void setMoveFactor(float factor) {
+		public GameObject setMoveFactor(float factor) {
 			this.moveFactor = factor;
+			return this;
 
 		}
 
@@ -861,9 +1031,13 @@ public class Game extends JPanel {
 		 * @param offsetX
 		 * @param offsetY
 		 */
-		public void setOffset(float offsetX, float offsetY) {
+		public GameObject setOffset(float offsetX, float offsetY) {
+			if (offset == null) {
+				offset = new Vector2D(this.name, offsetX, offsetY);
+			}
 			this.offset.x = offsetX;
 			this.offset.y = offsetY;
+			return this;
 		}
 
 		/**
@@ -874,9 +1048,187 @@ public class Game extends JPanel {
 		 * @param height
 		 *            the height of the object.
 		 */
-		public void setSize(float width, float height) {
+		public GameObject setSize(float width, float height) {
 			this.width = (int) width;
 			this.height = (int) height;
+			return this;
+		}
+
+		public GameObject offsetAtCenter() {
+			offset.x = this.width / 2;
+			offset.y = this.height / 2;
+			return this;
+		}
+	}
+
+	/**
+	 * The factory to create any object for this sample game.
+	 * 
+	 * - Factory#createGameObject(String name) create a GameObject, -
+	 * Factory#createCamera(String name), create a Camera (sic).
+	 * 
+	 * @author Frédéric Delorme
+	 *
+	 */
+	public class Factory {
+		/**
+		 * Create a new GameObject.
+		 * 
+		 * @param name
+		 *            the name of the new object.
+		 * @return
+		 */
+		public GameObject createGameObject(String name) {
+			return new GameObject(name);
+		}
+
+		/**
+		 * Create a new Camera.
+		 * 
+		 * @param name
+		 *            the name of the new camera.
+		 * @return
+		 */
+		public Camera createCamera(String name) {
+			return new Camera(name);
+		}
+
+		/**
+		 * Dynamic Factory create.
+		 * 
+		 * @param clazz
+		 *            class to be instantiated
+		 * @param name
+		 *            name for this object.
+		 * @return
+		 */
+		public Object create(Class<?extends GameObject> clazz, String name) {
+			Constructor<?> constructor;
+			Object obj = null;
+			try {
+				constructor = clazz.getDeclaredConstructor(String.class);
+				obj = constructor.newInstance(name);
+			} catch (NoSuchMethodException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (SecurityException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InstantiationException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalAccessException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IllegalArgumentException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (InvocationTargetException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return obj;
+		}
+
+	}
+
+	/**
+	 * The camera object defines how to manage the game view, by tracking an object.
+	 * 
+	 * @author Frédéric Delorme
+	 *
+	 */
+	class Camera extends GameObject {
+
+		private GameObject trackedObject = null;
+		private float tween = 1.0f;
+		private Dimension view = new Dimension(0, 0);
+		public double angle = 0.0f;
+
+		Camera(String name) {
+			super(name);
+		}
+
+		Camera(String name, float x, float y) {
+			super(name, x, y);
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see fr.snapgames.game.singleclassgame.Game.GameObject#updatePhysic(float)
+		 */
+		@Override
+		public void updatePhysic(float dt) {
+			if (trackedObject != null) {
+				this.position.x += (trackedObject.position.x 
+						- ( view.width / 2 ) 
+						- this.position.x) * tween * dt;
+				this.position.y += (trackedObject.position.y 
+						- ( view.height / 2 )
+						- this.position.y) * tween * dt;
+			} else {
+				this.updatePhysic(dt);
+			}
+		}
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see
+		 * fr.snapgames.game.singleclassgame.Game.GameObject#render(java.awt.Graphics2D)
+		 */
+		@Override
+		public void render(Graphics2D g) {
+			if (debug > 1) {
+				g.setColor(Color.ORANGE);
+				g.drawRect(16, 16, view.width - 32, view.height - 32);
+				g.drawString(name, 16, 16);
+			}
+		}
+
+		/**
+		 * set the game view for camera position computation.
+		 * 
+		 * @param view
+		 * @return
+		 */
+		Camera setView(Dimension view) {
+			this.view = view;
+			return this;
+		}
+
+		/**
+		 * Add a target to the camera.
+		 * 
+		 * @param target
+		 * @return
+		 */
+		Camera setTrackedObject(GameObject target) {
+			this.trackedObject = target;
+			return this;
+		}
+
+		/**
+		 * Define the Tween tracker factor to <code>tween</code>.
+		 * 
+		 * @param tween
+		 * @return
+		 */
+		public Camera setTweenFactor(float tween) {
+			this.tween = tween;
+			return this;
+		}
+
+		/**
+		 * Define the camera rotation angle.
+		 * 
+		 * @param angle
+		 * @return
+		 */
+		public Camera setRotation(float angle) {
+			this.angle = angle;
+			return this;
 		}
 
 	}
@@ -976,20 +1328,20 @@ public class Game extends JPanel {
 		public void keyPressed(KeyEvent e) {
 			if (kil.keys[KeyEvent.VK_UP]) {
 				move = true;
-				player.forces.add(new Vector2D(0.0f, -player.moveFactor));
+				player.forces.add(new Vector2D("move-up", 0.0f, -player.moveFactor));
 			}
 			if (kil.keys[KeyEvent.VK_DOWN]) {
 				move = true;
-				player.forces.add(new Vector2D(0.0f, player.moveFactor));
+				player.forces.add(new Vector2D("move-down", 0.0f, player.moveFactor));
 			}
 			if (kil.keys[KeyEvent.VK_LEFT]) {
 				move = true;
-				player.forces.add(new Vector2D(-player.moveFactor, 0.0f));
+				player.forces.add(new Vector2D("move-left", -player.moveFactor, 0.0f));
 			}
 
 			if (kil.keys[KeyEvent.VK_RIGHT]) {
 				move = true;
-				player.forces.add(new Vector2D(player.moveFactor, 0.0f));
+				player.forces.add(new Vector2D("move-right", player.moveFactor, 0.0f));
 			}
 
 			if (kil.keys[KeyEvent.VK_SPACE]) {
@@ -1024,6 +1376,13 @@ public class Game extends JPanel {
 
 	}
 
+	/**
+	 * This configuration object intends to manage persisting configuration
+	 * properties to a specific file.
+	 * 
+	 * @author Frédéric Delorme
+	 *
+	 */
 	static class Configuration {
 
 		private static final Logger logger = LoggerFactory.getLogger(Configuration.class);
@@ -1038,19 +1397,27 @@ public class Game extends JPanel {
 		}
 
 		/**
-		 * 
+		 * Load configuration properties from file. By default, the configuration file
+		 * is located in "/res/configuration.properties". All matching properties are
+		 * loaded.
 		 */
 		private void load() {
 			try {
 				if (props == null) {
 					props = new Properties();
 				}
-				props.load(Game.class.getResourceAsStream("/res/configuration.properties"));
+				if (new File(Game.class.getResource("/").getPath() + "configuration.properties").exists()) {
+					props.load(Game.class.getResourceAsStream("/configuration.properties"));
+
+				} else {
+					props.load(Game.class.getResourceAsStream("/res/configuration.properties"));
+				}
 				for (Entry<Object, Object> prop : props.entrySet()) {
 					logger.info(String.format("config %s : %s", prop.getKey(), prop.getValue()));
 				}
 
 			} catch (IOException e) {
+				logger.error("Unable to read configuration file", e);
 				System.err.println("Unable to read configuration file");
 				System.exit(-1);
 			}
@@ -1067,12 +1434,12 @@ public class Game extends JPanel {
 		 * Save configuration to configuration.properties file.
 		 */
 		private void store() {
-
 			try {
 				File f = new File(Game.class.getResource("/").getPath() + "/configuration.properties");
 				OutputStream out = new FileOutputStream(f);
 				props.store(out, "Update configuration");
 			} catch (IOException e) {
+				logger.error("Unable to store configuration file", e);
 				System.err.println("Unable to store configuration file");
 				System.exit(-1);
 			}
@@ -1213,15 +1580,17 @@ public class Game extends JPanel {
 		scale = Configuration.getFloat("window.scale", 2.0f);
 		debug = Configuration.getInteger("debug.level", 1);
 
-		dim = new Dimension((int) (width * scale), (int) (height * scale));
+		dim = new Dimension((int) (width), (int) (height));
 
-		playZone = new Dimension(dim.width, dim.height);
+		playZone = new Dimension((int)(dim.width * scale), (int)(dim.height * scale));
 
 		buffer = new BufferedImage(dim.width, dim.height, BufferedImage.TYPE_INT_ARGB);
 
 		kil = new KeyInputListener();
 
-		world = new World(new Vector2D(0.0f, -0.981f));
+		factory = new Factory();
+
+		world = new World(new Vector2D("gravity", 0.0f, -0.981f));
 
 		resourceMgr = new ResourceManager();
 
@@ -1256,27 +1625,32 @@ public class Game extends JPanel {
 	 * initialize some GameObject's to play with.
 	 */
 	public void initialize(String[] args) {
+
 		// add Game key listener
 		kil.register(new GameKeyInput());
+
+		// read image resources
 		resourceMgr.addResource("playerBall", "res/images/blue-bouncing-ball-64x64.png");
 		resourceMgr.addResource("enemyBall", "res/images/red-bouncing-ball-64x64.png");
 
-		player = new GameObject("player", 50, 50);
+		// Add objects to world.
 		try {
-			player.setImage(resourceMgr.getImage("playerBall"));
+
+			player = factory.createGameObject("player")
+					.setPosition(50, 50)
+					.setImage(resourceMgr.getImage("playerBall"))
+					.setMoveFactor(0.25f)
+					.setMass(200f)
+					.setFriction(0.56f)
+					.setElasticity(0.32f)
+					.offsetAtCenter()
+					.setPriority(1)
+					.setDebugColor(Color.RED);
+			add(player);
 		} catch (ResourceUnknownException e) {
 			System.err.println("Unable to retrieve the playerBall resource");
 			System.exit(-1);
 		}
-		player.setMoveFactor(0.5f);
-		player.setMass(20.0f);
-		player.setFriction(0.56f);
-		player.setElasticity(0.32f);
-		player.setOffset(player.width / 2, player.height / 2);
-
-		player.setPriority(1);
-		player.setDebugColor(Color.RED);
-		add(player);
 
 		// add specific game player key listener
 		kil.register(new PlayerKeyInput(player, kil));
@@ -1284,22 +1658,31 @@ public class Game extends JPanel {
 		for (int i = 0; i < 10; i++) {
 			float posX = (float) (Math.random() * dim.width / 2);
 			float posY = (float) (Math.random() * dim.height / 2);
-			GameObject enemy = new GameObject("enemy_" + i, posX, posY);
 			try {
-				enemy.setImage(resourceMgr.getImage("enemyBall"));
+				GameObject enemy = factory.createGameObject("enemy_" + i).setPosition(posX, posY)
+						.setImage(resourceMgr.getImage("enemyBall")).setSize(16.0f, 16.0f)
+						.setAcceleration((float) Math.random() * 0.010f, (float) Math.random() * 0.010f)
+						.setPriority(2 + i).setMass(100.0f).setFriction(0.10f).setElasticity(0.80f).setOffset(16, 16);
+				add(enemy);
 			} catch (ResourceUnknownException e) {
 				System.err.println("Unable to retrieve the enemyBall resource");
 				System.exit(-1);
 			}
-			enemy.setSize(16.0f, 16.0f);
-			enemy.setAcceleration((float) Math.random() * 0.010f, (float) Math.random() * 0.010f);
-			enemy.setPriority(2 + i);
-			enemy.setMass(100.0f);
-			enemy.setFriction(0.10f);
-			enemy.setElasticity(0.80f);
-			enemy.setOffset(enemy.width / 2, enemy.height / 2);
-			add(enemy);
 		}
+
+		// Add a Camera to the world.
+		Camera cam = (Camera) factory.createCamera("camera")
+				.setTrackedObject(player)
+				.setTweenFactor(0.12f)
+				.setView(dim)
+				//.setRotation(0.25f)
+				.setPosition(0.0f, 0.0f);
+
+		world.addCamera(cam);
+
+		// Add a piece of wind to our world !
+		world.addForce(new Vector2D("some-wind", 0.5f, 0.0f));
+
 	}
 
 	/**
@@ -1375,10 +1758,12 @@ public class Game extends JPanel {
 	public void update(float elapsed) {
 		if (objects != null && objects.size() > 0) {
 			for (GameObject o : objects) {
-				// o.update(elapsed);
 				o.updatePhysic(elapsed);
 				constrainsObjectToPlayZone(playZone, o);
 			}
+		}
+		if (world != null && world.activeCam != null) {
+			world.activeCam.updatePhysic(elapsed);
 		}
 	}
 
@@ -1431,12 +1816,24 @@ public class Game extends JPanel {
 		g.setColor(Color.BLACK);
 		g.fillRect(0, 0, buffer.getWidth(), buffer.getHeight());
 
+		if (world.activeCam != null) {
+			g.translate(-world.activeCam.position.x, -world.activeCam.position.y);
+			g.rotate(-world.activeCam.angle);
+		}
+
 		// if objects in the list, draw all those things
 		if (objects != null && objects.size() > 0) {
 			for (GameObject o : objects) {
 				o.render(g);
 			}
 		}
+
+		if (world.activeCam != null) {
+			g.rotate(world.activeCam.angle);
+			g.translate(world.activeCam.position.x, world.activeCam.position.y);
+			world.activeCam.render(g);
+		}
+
 		// add some debug information
 		if (debug > 0) {
 			g.setColor(Color.ORANGE);
@@ -1495,6 +1892,9 @@ public class Game extends JPanel {
 	 * @param args
 	 */
 	private void parseArgs(String[] args) {
+		if (dim == null) {
+			dim = new Dimension(320, 200);
+		}
 		for (String arg : args) {
 			String[] parts = arg.split("=");
 			switch (parts[0]) {
