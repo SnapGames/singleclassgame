@@ -5,7 +5,7 @@
 	<groupId>fr.snapgames.game</groupId>
 	<artifactId>singleclassgame</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>OneClassGame</name>
+	<name>SingleClassGame</name>
 	<description>An attempt to create a simple game with near only one class.</description>
 
 	<!-- Main contributors to the project -->
@@ -25,7 +25,7 @@
 
 	<!-- Project properties -->
 	<properties>
-		<mainClass>fr.snapgames.game.oneclassgame.Game</mainClass>
+		<mainClass>fr.snapgames.game.singleclassgame.Game</mainClass>
 		<versioneye.project.id>5af2f8ed0fb24f0e57e3d81f</versioneye.project.id>
 	</properties>
 
@@ -325,6 +325,12 @@
 				<artifactId>exec-maven-plugin</artifactId>
 				<version>1.6.0</version>
 				<configuration>
+					<arguments>
+						<argument>-Dw=640</argument>
+						<argument>-Dh=400</argument>
+						<argument>-Ds=1.5f</argument>
+						<argument>-Dd=3</argument>
+					</arguments>
 					<mainClass>${mainClass}</mainClass>
 				</configuration>
 			</plugin>

@@ -4,7 +4,7 @@
  * @see http://snapgames.fr/
  * @year 2018
  */
-package fr.snapgames.game.oneclassgame;
+package fr.snapgames.game.singleclassgame;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -138,7 +138,7 @@ public class Game extends JPanel {
 	 *
 	 */
 	class VersionTracker {
-
+		private final Logger logger = LoggerFactory.getLogger(VersionTracker.class);
 		Model model = null;
 
 		public VersionTracker() {
@@ -151,8 +151,7 @@ public class Game extends JPanel {
 					model = reader.read(new InputStreamReader(Game.class.getResourceAsStream(
 							"/META-INF/maven/de.scrum-master.stackoverflow/aspectj-introduce-method/pom.xml")));
 			} catch (IOException | XmlPullParserException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				logger.error("Unable to retrieve data from maven `pom.xml` file",e);
 			}
 
 		}
@@ -1497,7 +1496,7 @@ public class Game extends JPanel {
 	 */
 	private void parseArgs(String[] args) {
 		for (String arg : args) {
-			String[] parts = arg.split(":");
+			String[] parts = arg.split("=");
 			switch (parts[0]) {
 			case "width":
 			case "w":
