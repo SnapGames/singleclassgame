@@ -1,16 +1,22 @@
 /**
  * SnapGames
- *
- * @see http://snapgames.fr/
+ * 
+ * Project : SingleClassGame
+ * 
+ * <p>This project intends to propose a basement for **2D game development** with the `Java` language. 
+ * 
  * @year 2018
+ * @see http://snapgames.fr/
  */
 package fr.snapgames.game.singleclassgame;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.RenderingHints;
+import java.awt.Stroke;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.geom.Ellipse2D;
@@ -56,15 +62,14 @@ import org.slf4j.LoggerFactory;
  * <li>the {@link Game#render()} will compute and draw to screen all those
  * objects.
  * </ul>
- * 
+ *
  * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
  * 
  * @see http://github.com/SnapGames/singleclassgame
- *
  */
 public class Game extends JPanel {
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 1L;
 
@@ -134,7 +139,7 @@ public class Game extends JPanel {
 	private World world;
 
 	/**
-	 * The window where to sdraw the game view.
+	 * The window where to draw the game view.
 	 */
 	private Window window;
 
@@ -146,9 +151,8 @@ public class Game extends JPanel {
 	/**
 	 * This integrated class parse Maven model to expose a resulting list of
 	 * dependencies.
-	 * 
-	 * @author Frédéric Delorme
 	 *
+	 * @author Frédéric Delorme
 	 */
 	class VersionTracker {
 		private final Logger logger = LoggerFactory.getLogger(VersionTracker.class);
@@ -157,16 +161,20 @@ public class Game extends JPanel {
 		public VersionTracker() {
 			try {
 				MavenXpp3Reader reader = new MavenXpp3Reader();
-				if ((new File("pom.xml")).exists())
-					model = reader.read(new FileReader("pom.xml"));
-
-				else
-					model = reader.read(new InputStreamReader(Game.class.getResourceAsStream(
-							"/META-INF/maven/de.scrum-master.stackoverflow/aspectj-introduce-method/pom.xml")));
+				if (reader != null) {
+					if ((new File("pom.xml")).exists()) {
+						model = reader.read(new FileReader("pom.xml"));
+					} else {
+						model = reader.read(new InputStreamReader(Game.class
+								.getResourceAsStream("/META-INF/maven/fr.snapgames.game/singleclassgame/pom.xml")));
+					}
+				}
 			} catch (IOException | XmlPullParserException e) {
 				logger.error("Unable to retrieve data from maven `pom.xml` file", e);
 			}
-
+			if (model == null) {
+				logger.info("unable to read dependency data from maven");
+			}
 		}
 
 		void extractProjectInformation() {
@@ -184,7 +192,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Parse pom.xml file to extract Maven dependencies for the project.
-		 * 
+		 *
 		 * @return List of corresponding dependencies.
 		 * @see https://stackoverflow.com/questions/3697449/retrieve-version-from-maven-pom-xml-in-code
 		 */
@@ -194,7 +202,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Retrive list of developers
-		 * 
+		 *
 		 * @return
 		 */
 		List<Developer> getDevelopers() {
@@ -203,7 +211,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Retrieve description
-		 * 
+		 *
 		 * @return
 		 */
 		String getDescription() {
@@ -212,7 +220,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Retrieve project name.
-		 * 
+		 *
 		 * @return
 		 */
 		String getName() {
@@ -221,7 +229,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Retrieve project version.
-		 * 
+		 *
 		 * @return
 		 */
 		String getVersion() {
@@ -230,7 +238,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Retrieve inception year
-		 * 
+		 *
 		 * @return
 		 */
 		String getInceptionYear() {
@@ -240,8 +248,11 @@ public class Game extends JPanel {
 	}
 
 	/**
+	 * The Window object will create layer between the game and the OS windowing
+	 * system. The window can have a size at `scale` regarding game viewport size.
+	 * 
+	 * 
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
-	 *
 	 */
 	class Window {
 		/**
@@ -251,7 +262,7 @@ public class Game extends JPanel {
 
 		/**
 		 * CReate a window containing the Game with a title.
-		 * 
+		 *
 		 * @param game
 		 *            the game to display in the window.
 		 * @param title
@@ -288,7 +299,7 @@ public class Game extends JPanel {
 
 		/**
 		 * add a key listener to the window.
-		 * 
+		 *
 		 * @param kil
 		 */
 		public void setKeyInputListener(KeyInputListener kil) {
@@ -297,7 +308,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the window title.
-		 * 
+		 *
 		 * @param title
 		 *            the new window title.
 		 */
@@ -307,7 +318,7 @@ public class Game extends JPanel {
 
 		/**
 		 * retrieve the Graphics API for this window.
-		 * 
+		 *
 		 * @return
 		 */
 		public Graphics2D getGraphics() {
@@ -317,7 +328,6 @@ public class Game extends JPanel {
 
 	/**
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
-	 *
 	 */
 	class World {
 
@@ -351,7 +361,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Initialize the world with a gravity.
-		 * 
+		 *
 		 * @param gravity
 		 */
 		public World(Vector2D gravity) {
@@ -363,7 +373,7 @@ public class Game extends JPanel {
 		/**
 		 * Add a camera to the world. if no default camera is set, add this as the
 		 * default one.
-		 * 
+		 *
 		 * @param cam
 		 * @return
 		 */
@@ -377,7 +387,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the active camera for this world.
-		 * 
+		 *
 		 * @param cam
 		 * @return
 		 */
@@ -391,7 +401,7 @@ public class Game extends JPanel {
 
 		/**
 		 * add a new force to this world.
-		 * 
+		 *
 		 * @param force
 		 * @return
 		 */
@@ -404,14 +414,13 @@ public class Game extends JPanel {
 
 	/**
 	 * the ResourceUnknownException class is thrown when a resource is not found.
-	 * 
-	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
 	 *
+	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
 	 */
 	class ResourceUnknownException extends Exception {
 
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = 1L;
 
@@ -427,16 +436,15 @@ public class Game extends JPanel {
 	/**
 	 * the ResourceManager class intends to load and cache some objects like image,
 	 * sounds, font, etc... any resources.
-	 * 
-	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
 	 *
+	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
 	 */
 	class ResourceManager {
 		private Map<String, Object> objects = new HashMap<>();
 
 		/**
 		 * Add a resource to the set.
-		 * 
+		 *
 		 * @param name
 		 *            name for this resource
 		 * @param path
@@ -457,7 +465,7 @@ public class Game extends JPanel {
 
 		/**
 		 * retrieve an image from the resource set.
-		 * 
+		 *
 		 * @param name
 		 *            the name of the resource to retrieve.
 		 * @return the BufferedImage extracted from the resource set.
@@ -483,19 +491,18 @@ public class Game extends JPanel {
 	 * <li>and remove at anytime a keyListener with
 	 * {@link KeyInputListener#remove(KeyListener)}
 	 * </ul>
-	 * 
+	 *
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
-	 * 
 	 */
 	class KeyInputListener implements KeyListener {
 		/**
 		 * current state of the key
 		 */
-		boolean[] keys = new boolean[65235];
+		private boolean[] keys = new boolean[65235];
 		/**
 		 * Previous state of the key.
 		 */
-		boolean[] previous = new boolean[65235];
+		private boolean[] previous = new boolean[65235];
 
 		/**
 		 * List of KeyListener to be called on key events.
@@ -504,7 +511,7 @@ public class Game extends JPanel {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.awt.event.KeyListener#keyPressed(java.awt.event.KeyEvent)
 		 */
 		@Override
@@ -518,7 +525,7 @@ public class Game extends JPanel {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.awt.event.KeyListener#keyReleased(java.awt.event.KeyEvent)
 		 */
 		@Override
@@ -532,7 +539,7 @@ public class Game extends JPanel {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.awt.event.KeyListener#keyTyped(java.awt.event.KeyEvent)
 		 */
 		@Override
@@ -545,7 +552,7 @@ public class Game extends JPanel {
 
 		/**
 		 * This method will register a new key manager for a specific need.
-		 * 
+		 *
 		 * @param kcb
 		 */
 		public void register(KeyListener kcb) {
@@ -554,20 +561,40 @@ public class Game extends JPanel {
 
 		/**
 		 * This is to remove a key listener from the system.
-		 * 
+		 *
 		 * @param kcb
 		 */
 		public void remove(KeyListener kcb) {
 			this.objectsCallBack.remove(kcb);
 		}
 
+		/**
+		 * Return current state of the key for <code>keyCode</code>.
+		 * 
+		 * @param keyCode
+		 *            Key code to be verified.
+		 * @return true if pushed, else false.
+		 */
+		public boolean getKey(int keyCode) {
+			return keys[keyCode];
+		}
+
+		/**
+		 * Return the previous state of the key for <code>KeyCode</code>.
+		 * 
+		 * @param keyCode
+		 *            the Key code of the key to be verified.
+		 * @return true if previously pushed, else false.
+		 */
+		public boolean getPrevious(int keyCode) {
+			return previous[keyCode];
+		}
 	}
 
 	/**
 	 * A 2D Vector class to compute next gen things..
-	 * 
-	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 *
+	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
 	class Vector2D {
 		private String name;
@@ -592,7 +619,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the default gravity.
-		 * 
+		 *
 		 * @param x
 		 * @param y
 		 */
@@ -604,7 +631,7 @@ public class Game extends JPanel {
 
 		/**
 		 * add the v vector.
-		 * 
+		 *
 		 * @param v
 		 */
 		Vector2D add(Vector2D v) {
@@ -615,7 +642,7 @@ public class Game extends JPanel {
 
 		/**
 		 * substract the v vector.
-		 * 
+		 *
 		 * @param v
 		 */
 		public Vector2D sub(Vector2D v) {
@@ -624,7 +651,7 @@ public class Game extends JPanel {
 
 		/**
 		 * multiply the vector with f.
-		 * 
+		 *
 		 * @param f
 		 */
 		public Vector2D multiply(float f) {
@@ -635,7 +662,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Compute distance between this vector and the vector <code>v</code>.
-		 * 
+		 *
 		 * @param v
 		 *            the vector to compute distance with.
 		 * @return
@@ -666,7 +693,7 @@ public class Game extends JPanel {
 		/**
 		 * Dot product for current instance {@link Vector2D} and the <code>v1</code>
 		 * vector.
-		 * 
+		 *
 		 * @param v1
 		 * @return
 		 */
@@ -678,9 +705,8 @@ public class Game extends JPanel {
 
 	/**
 	 * Bounding Box type can have 3 values.
-	 * 
-	 * @author Frédéric Delorme
 	 *
+	 * @author Frédéric Delorme
 	 */
 	enum BoundingBoxType {
 		NONE, RECTANGLE, CIRCLE, CAPSULE, POINTS;
@@ -688,9 +714,8 @@ public class Game extends JPanel {
 
 	/**
 	 * Bounding Box for any object managed by the system.
-	 * 
-	 * @author Frédéric Delorme
 	 *
+	 * @author Frédéric Delorme
 	 */
 	class BoundingBox {
 
@@ -732,7 +757,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Update bounding box according to GameObject size and position.
-		 * 
+		 *
 		 * @param go
 		 */
 		public void update(GameObject go) {
@@ -765,9 +790,8 @@ public class Game extends JPanel {
 	 * <li><code>friction</code>,
 	 * <li><code>elasticity</code>.
 	 * </ul>
-	 * 
-	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 *
+	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
 	public class GameObject {
 
@@ -808,18 +832,19 @@ public class Game extends JPanel {
 
 		/**
 		 * Create a new basic Object entity with a <code>name</code>.
-		 * 
+		 *
 		 * @param name
 		 *            the name of this object.
 		 */
 		public GameObject(String name) {
 			this.name = name;
+			bBox = new BoundingBox();
 		}
 
 		/**
 		 * Create a new Object entity with a <code>name</code> and a position
 		 * <code>(x,y)</code>.
-		 * 
+		 *
 		 * @param name
 		 *            the name of this object.
 		 * @param x
@@ -830,12 +855,13 @@ public class Game extends JPanel {
 		GameObject(String name, float x, float y) {
 			this(name);
 			setPosition(x, y);
+			bBox.update(this);
 		}
 
 		/**
 		 * Update all physic according the <code>elapsed</code> time since previous
 		 * call.
-		 * 
+		 *
 		 * @param elapsed
 		 *            time elapsed since previous call.
 		 */
@@ -863,13 +889,14 @@ public class Game extends JPanel {
 			if (Math.abs(velocity.y) < 0.01f) {
 				velocity.y = 0.0f;
 			}
+			bBox.update(this);
 
 		}
 
 		/**
 		 * Render the object. Draw an <code>image</code> if this attribute is not null,
 		 * or anyway, if <code>debug</code> level>1, draw a simple rectangle.
-		 * 
+		 *
 		 * @param g
 		 */
 		public void render(Graphics2D g) {
@@ -897,8 +924,8 @@ public class Game extends JPanel {
 								(int) (position.x + width + 4), (int) position.y + 20);
 						g.setColor(Color.GREEN);
 						g.drawLine((int) (position.x + (offset.x)), (int) (position.y + (offset.y)),
-								(int) (position.x + (offset.x) + (acceleration.x * 4)),
-								(int) (position.y + (offset.y) + (acceleration.y * 4)));
+								(int) (position.x + (offset.x) + (acceleration.x * 10)),
+								(int) (position.y + (offset.y) + (acceleration.y * 10)));
 						g.drawString(String.format("a:(%4.2f,%4.2f)", acceleration.x, acceleration.y),
 								(int) (position.x + width + 4), (int) position.y + 30);
 					}
@@ -908,7 +935,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the acceleration for this object.
-		 * 
+		 *
 		 * @param ax
 		 * @param ay
 		 */
@@ -920,7 +947,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the velocity for this object.
-		 * 
+		 *
 		 * @param dx
 		 * @param dy
 		 */
@@ -932,29 +959,31 @@ public class Game extends JPanel {
 
 		/**
 		 * Set position for this object.
-		 * 
+		 *
 		 * @param x
 		 * @param y
 		 */
 		public GameObject setPosition(float x, float y) {
 			this.position.x = x;
 			this.position.y = y;
+			bBox.update(this);
 			return this;
 		}
 
 		/**
 		 * Set the object's scale.
-		 * 
+		 *
 		 * @param scale
 		 */
 		public GameObject setScale(float scale) {
 			this.scale = scale;
+			bBox.update(this);
 			return this;
 		}
 
 		/**
 		 * Set the object Mass.
-		 * 
+		 *
 		 * @param factor
 		 */
 		public GameObject setMass(float factor) {
@@ -964,7 +993,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the object friction factor.
-		 * 
+		 *
 		 * @param factor
 		 */
 		public GameObject setFriction(float factor) {
@@ -974,7 +1003,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the elasticity factor for the object.
-		 * 
+		 *
 		 * @param factor
 		 */
 		public GameObject setElasticity(float factor) {
@@ -984,7 +1013,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the default debug information rendering color.
-		 * 
+		 *
 		 * @param debugColor
 		 */
 		public GameObject setDebugColor(Color debugColor) {
@@ -994,7 +1023,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the rendering order priority for this object.
-		 * 
+		 *
 		 * @param priority
 		 */
 		public GameObject setPriority(int priority) {
@@ -1004,19 +1033,20 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the image to be rendered for this object.
-		 * 
+		 *
 		 * @param image
 		 */
 		public GameObject setImage(BufferedImage image) {
 			this.image = image;
 			this.width = image.getWidth();
 			this.height = image.getHeight();
+			bBox.update(this);
 			return this;
 		}
 
 		/**
 		 * Set the move factor for the player to <code>factor</code>.
-		 * 
+		 *
 		 * @param f
 		 */
 		public GameObject setMoveFactor(float factor) {
@@ -1027,7 +1057,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set the offset factor to set object real center.
-		 * 
+		 *
 		 * @param offsetX
 		 * @param offsetY
 		 */
@@ -1042,7 +1072,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Set Object size by setting width and height.
-		 * 
+		 *
 		 * @param width
 		 *            the width of the object
 		 * @param height
@@ -1051,6 +1081,7 @@ public class Game extends JPanel {
 		public GameObject setSize(float width, float height) {
 			this.width = (int) width;
 			this.height = (int) height;
+			bBox.update(this);
 			return this;
 		}
 
@@ -1063,17 +1094,16 @@ public class Game extends JPanel {
 
 	/**
 	 * The factory to create any object for this sample game.
-	 * 
+	 * <p>
 	 * - Factory#createGameObject(String name) create a GameObject, -
 	 * Factory#createCamera(String name), create a Camera (sic).
-	 * 
-	 * @author Frédéric Delorme
 	 *
+	 * @author Frédéric Delorme
 	 */
 	public class Factory {
 		/**
 		 * Create a new GameObject.
-		 * 
+		 *
 		 * @param name
 		 *            the name of the new object.
 		 * @return
@@ -1084,7 +1114,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Create a new Camera.
-		 * 
+		 *
 		 * @param name
 		 *            the name of the new camera.
 		 * @return
@@ -1095,14 +1125,14 @@ public class Game extends JPanel {
 
 		/**
 		 * Dynamic Factory create.
-		 * 
+		 *
 		 * @param clazz
 		 *            class to be instantiated
 		 * @param name
 		 *            name for this object.
 		 * @return
 		 */
-		public Object create(Class<?extends GameObject> clazz, String name) {
+		public Object create(Class<? extends GameObject> clazz, String name) {
 			Constructor<?> constructor;
 			Object obj = null;
 			try {
@@ -1134,9 +1164,8 @@ public class Game extends JPanel {
 
 	/**
 	 * The camera object defines how to manage the game view, by tracking an object.
-	 * 
-	 * @author Frédéric Delorme
 	 *
+	 * @author Frédéric Delorme
 	 */
 	class Camera extends GameObject {
 
@@ -1155,18 +1184,14 @@ public class Game extends JPanel {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see fr.snapgames.game.singleclassgame.Game.GameObject#updatePhysic(float)
 		 */
 		@Override
 		public void updatePhysic(float dt) {
 			if (trackedObject != null) {
-				this.position.x += (trackedObject.position.x 
-						- ( view.width / 2 ) 
-						- this.position.x) * tween * dt;
-				this.position.y += (trackedObject.position.y 
-						- ( view.height / 2 )
-						- this.position.y) * tween * dt;
+				this.position.x += (trackedObject.position.x - (view.width / 2) - this.position.x) * tween * dt;
+				this.position.y += (trackedObject.position.y - (view.height / 2) - this.position.y) * tween * dt;
 			} else {
 				this.updatePhysic(dt);
 			}
@@ -1174,7 +1199,7 @@ public class Game extends JPanel {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see
 		 * fr.snapgames.game.singleclassgame.Game.GameObject#render(java.awt.Graphics2D)
 		 */
@@ -1189,7 +1214,7 @@ public class Game extends JPanel {
 
 		/**
 		 * set the game view for camera position computation.
-		 * 
+		 *
 		 * @param view
 		 * @return
 		 */
@@ -1200,7 +1225,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Add a target to the camera.
-		 * 
+		 *
 		 * @param target
 		 * @return
 		 */
@@ -1211,7 +1236,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Define the Tween tracker factor to <code>tween</code>.
-		 * 
+		 *
 		 * @param tween
 		 * @return
 		 */
@@ -1222,7 +1247,7 @@ public class Game extends JPanel {
 
 		/**
 		 * Define the camera rotation angle.
-		 * 
+		 *
 		 * @param angle
 		 * @return
 		 */
@@ -1240,14 +1265,13 @@ public class Game extends JPanel {
 	 * <li><key>ESCAPE</key> to quit the game,</li>
 	 * <li><key>PAUSE</key> to set game in the pause state.</li>
 	 * </ul>
-	 * 
-	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 *
+	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
 	class GameKeyInput implements KeyListener {
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.awt.event.KeyListener#keyPressed(java.awt.event.KeyEvent)
 		 */
 		@Override
@@ -1257,7 +1281,7 @@ public class Game extends JPanel {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.awt.event.KeyListener#keyReleased(java.awt.event.KeyEvent)
 		 */
 		@Override
@@ -1277,12 +1301,16 @@ public class Game extends JPanel {
 				debug = Math.floorMod(debug + 1, 5);
 				System.out.println(String.format("Debug level set to %d", debug));
 				break;
+			case KeyEvent.VK_S:
+			case KeyEvent.VK_F12:
+				System.out.println("take ascreenshot");
+				break;
 			}
 		}
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.awt.event.KeyListener#keyTyped(java.awt.event.KeyEvent)
 		 */
 		@Override
@@ -1304,9 +1332,8 @@ public class Game extends JPanel {
 	 * <li><code>RIGHT</code> to move right,
 	 * <li><code>SPACE</code> to stop all.
 	 * </ul>
-	 * 
-	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 *
+	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
 	class PlayerKeyInput implements KeyListener {
 
@@ -1321,27 +1348,31 @@ public class Game extends JPanel {
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.awt.event.KeyListener#keyPressed(java.awt.event.KeyEvent)
 		 */
 		@Override
 		public void keyPressed(KeyEvent e) {
 			if (kil.keys[KeyEvent.VK_UP]) {
 				move = true;
-				player.forces.add(new Vector2D("move-up", 0.0f, -player.moveFactor));
+				player.forces.add(new Vector2D("move-up", 0.0f, -player.moveFactor * 10.0f));
+				logger.debug("player move up y+={}", -player.moveFactor);
 			}
 			if (kil.keys[KeyEvent.VK_DOWN]) {
 				move = true;
 				player.forces.add(new Vector2D("move-down", 0.0f, player.moveFactor));
+				logger.debug("player move down y+={}", player.moveFactor);
 			}
 			if (kil.keys[KeyEvent.VK_LEFT]) {
 				move = true;
 				player.forces.add(new Vector2D("move-left", -player.moveFactor, 0.0f));
+				logger.debug("player move left x+={}", player.moveFactor);
 			}
 
 			if (kil.keys[KeyEvent.VK_RIGHT]) {
 				move = true;
 				player.forces.add(new Vector2D("move-right", player.moveFactor, 0.0f));
+				logger.debug("player move left x+={}", -player.moveFactor);
 			}
 
 			if (kil.keys[KeyEvent.VK_SPACE]) {
@@ -1349,29 +1380,26 @@ public class Game extends JPanel {
 				player.acceleration.x = 0.0f;
 				player.acceleration.y = 0.0f;
 			}
-
 		}
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.awt.event.KeyListener#keyReleased(java.awt.event.KeyEvent)
 		 */
 		@Override
 		public void keyReleased(KeyEvent e) {
 			move = false;
-
 		}
 
 		/*
 		 * (non-Javadoc)
-		 * 
+		 *
 		 * @see java.awt.event.KeyListener#keyTyped(java.awt.event.KeyEvent)
 		 */
 		@Override
 		public void keyTyped(KeyEvent e) {
 			// Nothing to do here.
-
 		}
 
 	}
@@ -1379,9 +1407,8 @@ public class Game extends JPanel {
 	/**
 	 * This configuration object intends to manage persisting configuration
 	 * properties to a specific file.
-	 * 
-	 * @author Frédéric Delorme
 	 *
+	 * @author Frédéric Delorme
 	 */
 	static class Configuration {
 
@@ -1454,10 +1481,9 @@ public class Game extends JPanel {
 
 		/**
 		 * retrieve a value from configuraiton.properties file.
-		 * 
+		 *
 		 * @param key
 		 *            key configuration to be retrieved.
-		 * 
 		 * @return String value
 		 */
 		private String getConfig(String key) {
@@ -1470,7 +1496,7 @@ public class Game extends JPanel {
 
 		/**
 		 * retrieve a <code>int</code> value for configuration <code>key</code>.
-		 * 
+		 *
 		 * @param key
 		 * @return
 		 */
@@ -1484,7 +1510,7 @@ public class Game extends JPanel {
 
 		/**
 		 * retrieve a <code>float</code> value for configuration <code>key</code>.
-		 * 
+		 *
 		 * @param key
 		 * @return
 		 */
@@ -1498,7 +1524,7 @@ public class Game extends JPanel {
 
 		/**
 		 * retrieve a <code>boolean</code> value for configuration <code>key</code>.
-		 * 
+		 *
 		 * @param key
 		 * @return
 		 */
@@ -1512,7 +1538,7 @@ public class Game extends JPanel {
 
 		/**
 		 * retrieve a <code>String</code> value for configuration <code>key</code>.
-		 * 
+		 *
 		 * @param key
 		 * @return
 		 */
@@ -1571,38 +1597,51 @@ public class Game extends JPanel {
 	}
 
 	/**
-	 * 
+	 * Create the Game window based on configuration and/or args.
+	 *
+	 * @param args
+	 *            list of command line argument send to java program.
 	 */
 	private void createWindow(String[] args) {
+
+		// retrieve configuration things
 		int width = Configuration.getInteger("window.width", 320);
 		int height = Configuration.getInteger("window.height", 320);
 		String title = Configuration.get("window.title", "SingleClassGame");
 		scale = Configuration.getFloat("window.scale", 2.0f);
 		debug = Configuration.getInteger("debug.level", 1);
 
-		dim = new Dimension((int) (width), (int) (height));
+		// Window dimension
+		dim = new Dimension((int) (width * scale), (int) (height * scale));
 
-		playZone = new Dimension((int)(dim.width * scale), (int)(dim.height * scale));
+		// Playing zone where things happened
+		playZone = new Dimension(dim.width * 4, dim.height * 4);
 
+		// buffer where to render things
 		buffer = new BufferedImage(dim.width, dim.height, BufferedImage.TYPE_INT_ARGB);
 
+		// add the default key listener
 		kil = new KeyInputListener();
 
+		// Initialize object factory
 		factory = new Factory();
 
+		// Set hte default World parameters.
 		world = new World(new Vector2D("gravity", 0.0f, -0.981f));
-
+		// Initialize ResourceManager
 		resourceMgr = new ResourceManager();
 
+		// create window and attach needed things
 		window = new Window(this, title);
 		window.setKeyInputListener(kil);
+		// show me the window !
 		window.show();
 
 	}
 
 	/**
 	 * Get attributes from Java command line.
-	 * 
+	 *
 	 * @param args
 	 */
 	public Game(String[] args) {
@@ -1639,13 +1678,14 @@ public class Game extends JPanel {
 			player = factory.createGameObject("player")
 					.setPosition(50, 50)
 					.setImage(resourceMgr.getImage("playerBall"))
-					.setMoveFactor(0.25f)
-					.setMass(200f)
-					.setFriction(0.56f)
+					.setMoveFactor(0.50f)
+					.setMass(100f)
+					.setFriction(0.30f)
 					.setElasticity(0.32f)
 					.offsetAtCenter()
 					.setPriority(1)
 					.setDebugColor(Color.RED);
+
 			add(player);
 		} catch (ResourceUnknownException e) {
 			System.err.println("Unable to retrieve the playerBall resource");
@@ -1656,13 +1696,19 @@ public class Game extends JPanel {
 		kil.register(new PlayerKeyInput(player, kil));
 
 		for (int i = 0; i < 10; i++) {
-			float posX = (float) (Math.random() * dim.width / 2);
-			float posY = (float) (Math.random() * dim.height / 2);
+			float posX = (float) (Math.random() * playZone.width);
+			float posY = (float) (Math.random() * playZone.height);
 			try {
-				GameObject enemy = factory.createGameObject("enemy_" + i).setPosition(posX, posY)
-						.setImage(resourceMgr.getImage("enemyBall")).setSize(16.0f, 16.0f)
+				GameObject enemy = factory.createGameObject("enemy_" + i)
+						.setPosition(posX, posY)
+						.setImage(resourceMgr.getImage("enemyBall"))
+						.setSize(16.0f, 16.0f)
 						.setAcceleration((float) Math.random() * 0.010f, (float) Math.random() * 0.010f)
-						.setPriority(2 + i).setMass(100.0f).setFriction(0.10f).setElasticity(0.80f).setOffset(16, 16);
+						.setPriority(2 + i)
+						.setMass(50.0f)
+						.setFriction(0.90f)
+						.setElasticity(0.80f)
+						.setOffset(16, 16);
 				add(enemy);
 			} catch (ResourceUnknownException e) {
 				System.err.println("Unable to retrieve the enemyBall resource");
@@ -1671,17 +1717,13 @@ public class Game extends JPanel {
 		}
 
 		// Add a Camera to the world.
-		Camera cam = (Camera) factory.createCamera("camera")
-				.setTrackedObject(player)
-				.setTweenFactor(0.12f)
-				.setView(dim)
-				//.setRotation(0.25f)
+		Camera cam = (Camera) factory.createCamera("camera").setTrackedObject(player).setTweenFactor(0.22f).setView(dim)
 				.setPosition(0.0f, 0.0f);
 
 		world.addCamera(cam);
 
 		// Add a piece of wind to our world !
-		world.addForce(new Vector2D("some-wind", 0.5f, 0.0f));
+		// world.addForce(new Vector2D("some-wind", 0.5f, 0.0f));
 
 	}
 
@@ -1689,14 +1731,17 @@ public class Game extends JPanel {
 	 * Run the main loop for the game.
 	 */
 	public void run() {
-		float previousTime = 0;
+
+		float previousTime = System.nanoTime();
 		float elapsed = 0;
 		float currentTime = 0;
 		int realFPS = 0;
 		int framesCount = 0, timeFrames = 0;
+
 		while (!exit) {
 			currentTime = System.nanoTime();
 			if (previousTime > 0.0f && !pause) {
+				asynchorneInput();
 				elapsed = (currentTime - previousTime) / 10000000.0f;
 				if (elapsed < 0.0f) {
 					elapsed = 1.0f;
@@ -1722,6 +1767,41 @@ public class Game extends JPanel {
 		System.exit(0);
 	}
 
+	private void asynchorneInput() {
+
+		// move up (with extra speed !)
+		if (kil.keys[KeyEvent.VK_UP]) {
+			player.forces.add(new Vector2D("move-up", 0.0f, -player.moveFactor * 10.0f));
+			logger.debug("player move up y+={}", -player.moveFactor);
+		}
+		// move down
+		if (kil.keys[KeyEvent.VK_DOWN]) {
+			player.forces.add(new Vector2D("move-down", 0.0f, player.moveFactor));
+			logger.debug("player move down y+={}", player.moveFactor);
+		}
+		// move left
+		if (kil.keys[KeyEvent.VK_LEFT]) {
+			player.forces.add(new Vector2D("move-left", -player.moveFactor, 0.0f));
+			logger.debug("player move left x+={}", player.moveFactor);
+		}
+
+		// move right
+		if (kil.keys[KeyEvent.VK_RIGHT]) {
+			player.forces.add(new Vector2D("move-right", player.moveFactor, 0.0f));
+			logger.debug("player move left x+={}", -player.moveFactor);
+		}
+
+		// stop any action !
+		if (kil.keys[KeyEvent.VK_SPACE]) {
+			player.forces.clear();
+			player.velocity.x=0.0f;
+			player.velocity.y=0.0f;
+			player.acceleration.x=0.0f;
+			player.acceleration.y=0.0f;
+		}
+
+	}
+
 	private void postOperation() {
 		for (GameObject go : objects) {
 			go.forces.clear();
@@ -1731,7 +1811,7 @@ public class Game extends JPanel {
 
 	/**
 	 * Wait for a delay corresponding to the elapsed time modulus the fpsDelay.
-	 * 
+	 *
 	 * @param elapsed
 	 */
 	private void wait(float elapsed) {
@@ -1751,7 +1831,7 @@ public class Game extends JPanel {
 
 	/**
 	 * Update all the objects of the game.
-	 * 
+	 *
 	 * @param elapsed
 	 *            time elapsed since previous call.
 	 */
@@ -1770,7 +1850,7 @@ public class Game extends JPanel {
 	/**
 	 * Constrained {@link GameObject} <code>object</code> to the Play Zone
 	 * <code>constrainedZone</code>.
-	 * 
+	 *
 	 * @param constrainedZone
 	 *            the zone where to constrains game object.
 	 * @param object
@@ -1828,6 +1908,18 @@ public class Game extends JPanel {
 			}
 		}
 
+		if (debug > 2) {
+			g.setColor(Color.LIGHT_GRAY);
+			Stroke bckValue = g.getStroke();
+			g.setStroke(new BasicStroke(0.56f));
+			for (int ix = 0; ix < playZone.width; ix += (playZone.width / 20)) {
+				for (int iy = 0; iy < playZone.height; iy += (playZone.height / 20)) {
+					g.drawRect(ix, iy, (playZone.width / 20), (playZone.height / 20));
+				}
+			}
+			g.setStroke(bckValue);
+		}
+
 		if (world.activeCam != null) {
 			g.rotate(world.activeCam.angle);
 			g.translate(world.activeCam.position.x, world.activeCam.position.y);
@@ -1838,6 +1930,10 @@ public class Game extends JPanel {
 		if (debug > 0) {
 			g.setColor(Color.ORANGE);
 			g.drawString(fps, 10, buffer.getHeight() - 20);
+			if (debug > 1) {
+				g.setColor(Color.GRAY);
+				g.drawRect(0, 0, dim.width, dim.height);
+			}
 		}
 
 		// release API
@@ -1871,7 +1967,7 @@ public class Game extends JPanel {
 
 	/**
 	 * Add a GameObject to the list of object managed by the Game.
-	 * 
+	 *
 	 * @param o
 	 *            the GameObject to add to the list.
 	 */
@@ -1882,13 +1978,15 @@ public class Game extends JPanel {
 		objects.sort(new Comparator<GameObject>() {
 			public int compare(GameObject o1, GameObject o2) {
 				return (o1.priority < o2.priority ? -1 : 1);
-			};
+			}
+
+			;
 		});
 	}
 
 	/**
 	 * Arguments to be analyzed and
-	 * 
+	 *
 	 * @param args
 	 */
 	private void parseArgs(String[] args) {

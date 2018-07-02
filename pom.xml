@@ -26,7 +26,6 @@
 	<!-- Project properties -->
 	<properties>
 		<mainClass>fr.snapgames.game.singleclassgame.Game</mainClass>
-		<mainClass>fr.snapgames.game.oneclassgame.Game</mainClass>
 		<versioneye.project.id>5af2f8ed0fb24f0e57e3d81f</versioneye.project.id>
 	</properties>
 
