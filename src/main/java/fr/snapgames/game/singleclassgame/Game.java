@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
@@ -68,6 +69,7 @@ import org.slf4j.LoggerFactory;
  * @see http://github.com/SnapGames/singleclassgame
  */
 public class Game extends JPanel {
+
 	/**
 	 *
 	 */
@@ -147,6 +149,8 @@ public class Game extends JPanel {
 	 * THE player for this game.
 	 */
 	GameObject player;
+
+	private CollisionManager collisionMgr;
 
 	/**
 	 * This integrated class parse Maven model to expose a resulting list of
@@ -556,7 +560,11 @@ public class Game extends JPanel {
 		 * @param kcb
 		 */
 		public void register(KeyListener kcb) {
+			if(!this.objectsCallBack.contains(kcb)) {
 			this.objectsCallBack.add(kcb);
+			}else {
+				logger.error("The KeyInputListener already contains this {} key listener", kcb.getClass().getName());
+			}
 		}
 
 		/**
@@ -635,8 +643,10 @@ public class Game extends JPanel {
 		 * @param v
 		 */
 		Vector2D add(Vector2D v) {
-			this.x += v.x;
-			this.y += v.y;
+			if (v != null) {
+				this.x += v.x;
+				this.y += v.y;
+			}
 			return this;
 		}
 
@@ -699,6 +709,320 @@ public class Game extends JPanel {
 		 */
 		public double dot(Vector2D v1) {
 			return this.x * v1.x + this.y * v1.y;
+		}
+
+	}
+
+	/**
+	 * Interface to managed Collision with ColliderSystem ans QuadTree.
+	 * 
+	 * @author Frédéric Delorme
+	 *
+	 */
+	public interface Collidable {
+
+		BoundingBox getBoundingBox();
+
+		void addCollider(Collidable c);
+	}
+
+	/**
+	 * THe Collision Manager help game to detect and manage collision between
+	 * <code>Collidable</code> object.
+	 * 
+	 * @author Frédéric Delorme
+	 * @see Collidable
+	 */
+	public class CollisionManager {
+
+		private List<Collidable> colliders = new ArrayList<>();
+
+		/**
+		 * The QuadTree to manage objects collision and visibility.
+		 */
+		private QuadTree quadTree;
+
+		public CollisionManager() {
+
+		}
+
+		/**
+		 * Set Colliding System dimension.
+		 * 
+		 * @param dim
+		 */
+		public void setDimension(Dimension dim) {
+			quadTree = new QuadTree(dim.width, dim.height);
+		}
+
+		/**
+		 * @param game
+		 * @param dt
+		 */
+		public void cullingProcess(Game game, float dt) {
+			quadTree.clear();
+			for (Collidable e : colliders) {
+				quadTree.insert(e);
+			}
+		}
+
+		public void add(GameObject e) {
+			colliders.add(e);
+			logger.debug("Add {} to CollisionSystem", e.name);
+		}
+
+		public void remove(GameObject e) {
+			colliders.remove(e);
+
+			logger.debug("Remove {} from CollisionSystem", e.name);
+		}
+
+		public void remove(String name) {
+			List<Collidable> toBeRemoved = new ArrayList<>();
+			for (Collidable c : colliders) {
+				GameObject e = (GameObject) c;
+				if (e.name.equals(name)) {
+					toBeRemoved.add(e);
+
+					logger.debug("object {} marked as remove into CollisionSystem", e.name);
+				}
+			}
+			colliders.removeAll(toBeRemoved);
+		}
+
+		/**
+		 * Manage collision from Player to other objects.
+		 */
+		public void update(Game game, float dt) {
+			cullingProcess(game, dt);
+
+			List<Collidable> collisionList = new CopyOnWriteArrayList<>();
+			GameObject o = game.player;
+			quadTree.retrieve(collisionList, o);
+			if (collisionList != null && !collisionList.isEmpty()) {
+				for (Collidable s : collisionList) {
+					GameObject ago = (GameObject) s;
+					if (!o.name.equals(ago.name) && ago.bBox.intersect(o.bBox) == 1) {
+						o.addCollider(ago);
+						ago.addCollider(o);
+						logger.debug("object {} collide object {}", o.name, ago.name);
+					}
+				}
+			}
+
+		}
+
+		public void draw(Game game, Graphics2D g, float fps) {
+			quadTree.draw(g);
+		}
+
+	}
+
+	/**
+	 * A lot of this code was stolen from this article: <br>
+	 * http://gamedevelopment.tutsplus.com/tutorials/quick-tip-use-quadtrees-to-detect-likely-collisions-in-2d-space--gamedev-374
+	 * <br>
+	 * <br>
+	 * created by chrislo27
+	 *
+	 */
+	public class QuadTree {
+
+		private int MAX_OBJECTS = 4;
+		private int MAX_LEVELS = 12;
+
+		private int level;
+		private List<Collidable> objects;
+		private float posX, posY, width, height;
+		private QuadTree[] nodes;
+		private int identifiedIndex;
+
+		/**
+		 * ideal constructor for making a quadtree that's empty <br>
+		 * simply calls the normal constructor with <code>
+		 * this(0, 0, 0, width, height)
+		 * </code>
+		 * 
+		 * @param width
+		 *            your game world width in units
+		 * @param height
+		 *            your game world height in units
+		 */
+		public QuadTree(float width, float height) {
+			this(0, 0, 0, width, height);
+		}
+
+		/**
+		 * 
+		 * @param pLevel
+		 *            start at level 0 if you're creating an empty quadtree
+		 * @param x
+		 * @param y
+		 * @param width
+		 * @param height
+		 */
+		public QuadTree(int pLevel, float x, float y, float width, float height) {
+			level = pLevel;
+			objects = new ArrayList<>();
+			posX = x;
+			posY = y;
+			this.width = width;
+			this.height = height;
+			nodes = new QuadTree[4];
+		}
+
+		public QuadTree setMaxObjects(int o) {
+			MAX_OBJECTS = o;
+			return this;
+		}
+
+		public QuadTree setMaxLevels(int l) {
+			MAX_LEVELS = l;
+			return this;
+		}
+
+		public int getChecks() {
+			int num = 0;
+
+			num += (objects.size() * objects.size());
+
+			for (int i = 0; i < nodes.length; i++) {
+				if (nodes[i] != null) {
+					num += nodes[i].getChecks();
+				}
+			}
+
+			return num;
+		}
+
+		/*
+		 * Clears the quadtree
+		 */
+		public void clear() {
+			objects.clear();
+
+			for (int i = 0; i < nodes.length; i++) {
+				if (nodes[i] != null) {
+					nodes[i].clear();
+					nodes[i] = null;
+				}
+			}
+		}
+
+		/*
+		 * Splits the node into 4 subnodes
+		 */
+		private void split() {
+			float subWidth = (width / 2);
+			float subHeight = (height / 2);
+			float x = posX;
+			float y = posY;
+
+			nodes[0] = new QuadTree(level + 1, x + subWidth, y, subWidth, subHeight);
+			nodes[1] = new QuadTree(level + 1, x, y, subWidth, subHeight);
+			nodes[2] = new QuadTree(level + 1, x, y + subHeight, subWidth, subHeight);
+			nodes[3] = new QuadTree(level + 1, x + subWidth, y + subHeight, subWidth, subHeight);
+		}
+
+		/*
+		 * Determine which node the object belongs to. -1 means object cannot completely
+		 * fit within a child node and is part of the parent node
+		 */
+		private int getIndex(Collidable col) {
+			BoundingBox bb = col.getBoundingBox();
+			int index = -1;
+			double verticalMidpoint = posX + (width / 2);
+			double horizontalMidpoint = posY + (width / 2);
+
+			// Object can completely fit within the top quadrants
+			boolean topQuadrant = (bb.rect.getX() < horizontalMidpoint
+					&& bb.rect.getY() + bb.rect.getHeight() < horizontalMidpoint);
+			// Object can completely fit within the bottom quadrants
+			boolean bottomQuadrant = (bb.rect.getY() > horizontalMidpoint);
+
+			// Object can completely fit within the left quadrants
+			if (bb.rect.getX() < verticalMidpoint && bb.rect.getX() + bb.rect.getWidth() < verticalMidpoint) {
+				if (topQuadrant) {
+					index = 1;
+				} else if (bottomQuadrant) {
+					index = 2;
+				}
+			}
+			// Object can completely fit within the right quadrants
+			else if (bb.rect.getX() > verticalMidpoint) {
+				if (topQuadrant) {
+					index = 0;
+				} else if (bottomQuadrant) {
+					index = 3;
+				}
+			}
+			identifiedIndex = index;
+
+			return index;
+		}
+
+		/*
+		 * Insert the object into the quadtree. If the node exceeds the capacity, it
+		 * will split and add all objects to their corresponding nodes.
+		 */
+		public void insert(Collidable pRect) {
+			if (nodes[0] != null) {
+				int index = getIndex(pRect);
+
+				if (index != -1) {
+					nodes[index].insert(pRect);
+
+					return;
+				}
+			}
+
+			objects.add(pRect);
+
+			if (objects.size() > MAX_OBJECTS && level < MAX_LEVELS) {
+				if (nodes[0] == null) {
+					split();
+				}
+
+				int i = 0;
+				while (i < objects.size()) {
+					int index = getIndex(objects.get(i));
+					if (index != -1) {
+						nodes[index].insert(objects.remove(i));
+					} else {
+						i++;
+					}
+				}
+			}
+		}
+
+		/*
+		 * Return all objects that could collide with the given object
+		 */
+		public List<Collidable> retrieve(List<Collidable> returnObjects, Collidable pRect) {
+			int index = getIndex(pRect);
+			if (index != -1 && nodes[0] != null) {
+				nodes[index].retrieve(returnObjects, pRect);
+			}
+
+			returnObjects.addAll(objects);
+
+			return returnObjects;
+		}
+
+		public void draw(Graphics2D g) {
+
+			for (int i = 0; i < nodes.length; i++) {
+				QuadTree n = nodes[i];
+				if (n != null) {
+					if (i == n.identifiedIndex) {
+						g.setColor(Color.ORANGE);
+					} else {
+						g.setColor(Color.BLUE);
+					}
+					g.drawRect((int) n.posX, (int) n.posY, (int) n.width, (int) n.height);
+					n.draw(g);
+				}
+			}
 		}
 
 	}
@@ -767,6 +1091,28 @@ public class Game extends JPanel {
 			// this.elipse2 = new Ellipse2D.Float(go.position.x, go.position.y, go.width,
 			// go.height);
 		}
+
+		/**
+		 * Create a new Bounding Box.
+		 * 
+		 * @return
+		 */
+		public BoundingBox builder() {
+			return new BoundingBox();
+		}
+
+		/**
+		 * Define the BoundingBoxType for this BoundingBox.
+		 * 
+		 * @param type
+		 *            type of the bounding box
+		 * @return this object.
+		 * @see BoundingBoxType
+		 */
+		public BoundingBox setType(BoundingBoxType type) {
+			this.type = type;
+			return this;
+		}
 	}
 
 	/**
@@ -793,7 +1139,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
-	public class GameObject {
+	public class GameObject implements Collidable {
 
 		String name = "";
 
@@ -830,15 +1176,18 @@ public class Game extends JPanel {
 
 		BoundingBox bBox;
 
+		private List<Collidable> colliders = new CopyOnWriteArrayList<>();
+
 		/**
 		 * Create a new basic Object entity with a <code>name</code>.
 		 *
 		 * @param name
 		 *            the name of this object.
 		 */
-		public GameObject(String name) {
+		private GameObject(String name) {
 			this.name = name;
 			bBox = new BoundingBox();
+			bBox.setType(BoundingBoxType.RECTANGLE);
 		}
 
 		/**
@@ -852,7 +1201,7 @@ public class Game extends JPanel {
 		 * @param y
 		 *            the Y position of this object.
 		 */
-		GameObject(String name, float x, float y) {
+		private GameObject(String name, float x, float y) {
 			this(name);
 			setPosition(x, y);
 			bBox.update(this);
@@ -1089,6 +1438,17 @@ public class Game extends JPanel {
 			offset.x = this.width / 2;
 			offset.y = this.height / 2;
 			return this;
+		}
+
+		@Override
+		public BoundingBox getBoundingBox() {
+			return bBox;
+		}
+
+		@Override
+		public void addCollider(Collidable c) {
+			colliders.add(c);
+
 		}
 	}
 
@@ -1631,6 +1991,8 @@ public class Game extends JPanel {
 		// Initialize ResourceManager
 		resourceMgr = new ResourceManager();
 
+		collisionMgr = new CollisionManager();
+
 		// create window and attach needed things
 		window = new Window(this, title);
 		window.setKeyInputListener(kil);
@@ -1668,6 +2030,9 @@ public class Game extends JPanel {
 		// add Game key listener
 		kil.register(new GameKeyInput());
 
+		// Define Collision manage playground.
+		collisionMgr.setDimension(playZone);
+
 		// read image resources
 		resourceMgr.addResource("playerBall", "res/images/blue-bouncing-ball-64x64.png");
 		resourceMgr.addResource("enemyBall", "res/images/red-bouncing-ball-64x64.png");
@@ -1675,16 +2040,9 @@ public class Game extends JPanel {
 		// Add objects to world.
 		try {
 
-			player = factory.createGameObject("player")
-					.setPosition(50, 50)
-					.setImage(resourceMgr.getImage("playerBall"))
-					.setMoveFactor(0.50f)
-					.setMass(100f)
-					.setFriction(0.30f)
-					.setElasticity(0.32f)
-					.offsetAtCenter()
-					.setPriority(1)
-					.setDebugColor(Color.RED);
+			player = factory.createGameObject("player").setPosition(50, 50).setImage(resourceMgr.getImage("playerBall"))
+					.setMoveFactor(0.50f).setMass(100f).setFriction(0.30f).setElasticity(0.32f).offsetAtCenter()
+					.setPriority(1).setDebugColor(Color.RED);
 
 			add(player);
 		} catch (ResourceUnknownException e) {
@@ -1699,16 +2057,10 @@ public class Game extends JPanel {
 			float posX = (float) (Math.random() * playZone.width);
 			float posY = (float) (Math.random() * playZone.height);
 			try {
-				GameObject enemy = factory.createGameObject("enemy_" + i)
-						.setPosition(posX, posY)
-						.setImage(resourceMgr.getImage("enemyBall"))
-						.setSize(16.0f, 16.0f)
+				GameObject enemy = factory.createGameObject("enemy_" + i).setPosition(posX, posY)
+						.setImage(resourceMgr.getImage("enemyBall")).setSize(16.0f, 16.0f)
 						.setAcceleration((float) Math.random() * 0.010f, (float) Math.random() * 0.010f)
-						.setPriority(2 + i)
-						.setMass(50.0f)
-						.setFriction(0.90f)
-						.setElasticity(0.80f)
-						.setOffset(16, 16);
+						.setPriority(2 + i).setMass(50.0f).setFriction(0.90f).setElasticity(0.80f).setOffset(16, 16);
 				add(enemy);
 			} catch (ResourceUnknownException e) {
 				System.err.println("Unable to retrieve the enemyBall resource");
@@ -1749,8 +2101,8 @@ public class Game extends JPanel {
 				update(elapsed);
 			}
 			if (elapsed <= fpsDelay) {
-				render(String.format("debug:%d c:%02d t:%04d fps:%03d pause:%s", debug, framesCount, timeFrames,
-						realFPS, (pause ? "on" : "off")));
+				render(realFPS, String.format("debug:%d c:%02d t:%04d fps:%03d pause:%s", debug, framesCount,
+						timeFrames, realFPS, (pause ? "on" : "off")));
 			}
 			postOperation();
 			framesCount += 1;
@@ -1794,10 +2146,10 @@ public class Game extends JPanel {
 		// stop any action !
 		if (kil.keys[KeyEvent.VK_SPACE]) {
 			player.forces.clear();
-			player.velocity.x=0.0f;
-			player.velocity.y=0.0f;
-			player.acceleration.x=0.0f;
-			player.acceleration.y=0.0f;
+			player.velocity.x = 0.0f;
+			player.velocity.y = 0.0f;
+			player.acceleration.x = 0.0f;
+			player.acceleration.y = 0.0f;
 		}
 
 	}
@@ -1842,6 +2194,7 @@ public class Game extends JPanel {
 				constrainsObjectToPlayZone(playZone, o);
 			}
 		}
+		collisionMgr.update(this, elapsed);
 		if (world != null && world.activeCam != null) {
 			world.activeCam.updatePhysic(elapsed);
 		}
@@ -1881,7 +2234,7 @@ public class Game extends JPanel {
 	/**
 	 * Render all the game objects to the buffer.
 	 */
-	public void render(String fps) {
+	public void render(float realFPS, String fps) {
 
 		// retrieve graphic API
 		Graphics2D g = (Graphics2D) buffer.getGraphics();
@@ -1919,6 +2272,10 @@ public class Game extends JPanel {
 			}
 			g.setStroke(bckValue);
 		}
+		if (debug > 3) {
+			collisionMgr.draw(this, g, realFPS);
+
+		}
 
 		if (world.activeCam != null) {
 			g.rotate(world.activeCam.angle);
@@ -1929,7 +2286,7 @@ public class Game extends JPanel {
 		// add some debug information
 		if (debug > 0) {
 			g.setColor(Color.ORANGE);
-			g.drawString(fps, 10, buffer.getHeight() - 20);
+			g.drawString(fps, 10, 40);
 			if (debug > 1) {
 				g.setColor(Color.GRAY);
 				g.drawRect(0, 0, dim.width, dim.height);
@@ -1975,6 +2332,7 @@ public class Game extends JPanel {
 		o.forces.addAll(world.forces);
 		o.forces.add(world.gravity);
 		objects.add(o);
+		collisionMgr.add(o);
 		objects.sort(new Comparator<GameObject>() {
 			public int compare(GameObject o1, GameObject o2) {
 				return (o1.priority < o2.priority ? -1 : 1);
