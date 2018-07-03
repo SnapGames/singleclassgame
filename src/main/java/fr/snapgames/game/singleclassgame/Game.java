@@ -60,8 +60,8 @@ import org.slf4j.LoggerFactory;
  * <ul>
  * <li>The {@link Game#update(float)} is will update all the object according to
  * very a simplistic physic computation.
- * <li>the {@link Game#render()} will compute and draw to screen all those
- * objects.
+ * <li>the {@link Game#render(float,string)} will compute and draw to screen all
+ * those objects.
  * </ul>
  *
  * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
@@ -151,6 +151,8 @@ public class Game extends JPanel {
 	GameObject player;
 
 	private CollisionManager collisionMgr;
+
+	public boolean randomizeEnemies;
 
 	/**
 	 * This integrated class parse Maven model to expose a resulting list of
@@ -560,9 +562,9 @@ public class Game extends JPanel {
 		 * @param kcb
 		 */
 		public void register(KeyListener kcb) {
-			if(!this.objectsCallBack.contains(kcb)) {
-			this.objectsCallBack.add(kcb);
-			}else {
+			if (!this.objectsCallBack.contains(kcb)) {
+				this.objectsCallBack.add(kcb);
+			} else {
 				logger.error("The KeyInputListener already contains this {} key listener", kcb.getClass().getName());
 			}
 		}
@@ -711,13 +713,19 @@ public class Game extends JPanel {
 			return this.x * v1.x + this.y * v1.y;
 		}
 
+		public String toString() {
+			return String.format("(%03.4f,%03.4f)", x, y);
+		}
+
 	}
 
 	/**
-	 * Interface to managed Collision with ColliderSystem ans QuadTree.
+	 * Interface to managed Collision with CollisionManager and QuadTree.
 	 * 
 	 * @author Frédéric Delorme
-	 *
+	 * 
+	 * @see QuadTree
+	 * @see CollisionManager
 	 */
 	public interface Collidable {
 
@@ -743,7 +751,6 @@ public class Game extends JPanel {
 		private QuadTree quadTree;
 
 		public CollisionManager() {
-
 		}
 
 		/**
@@ -753,6 +760,8 @@ public class Game extends JPanel {
 		 */
 		public void setDimension(Dimension dim) {
 			quadTree = new QuadTree(dim.width, dim.height);
+			quadTree.MAX_LEVELS = 16;
+			quadTree.MAX_OBJECTS = 2;
 		}
 
 		/**
@@ -1654,16 +1663,21 @@ public class Game extends JPanel {
 			case KeyEvent.VK_PAUSE:
 			case KeyEvent.VK_P:
 				pause = !pause;
-				System.out.println(String.format("Pause mode set to %s", (pause ? "ON" : "OFF")));
+				logger.info(String.format("Pause mode set to %s", (pause ? "ON" : "OFF")));
 				break;
 			case KeyEvent.VK_F3:
 			case KeyEvent.VK_D:
 				debug = Math.floorMod(debug + 1, 5);
-				System.out.println(String.format("Debug level set to %d", debug));
+				logger.info(String.format("Debug level set to %d", debug));
 				break;
 			case KeyEvent.VK_S:
 			case KeyEvent.VK_F12:
-				System.out.println("take ascreenshot");
+				logger.info("take ascreenshot");
+				break;
+
+			case KeyEvent.VK_R:
+				logger.info("randomize enemies forces");
+				randomizeEnemies = true;
 				break;
 			}
 		}
@@ -2053,14 +2067,15 @@ public class Game extends JPanel {
 		// add specific game player key listener
 		kil.register(new PlayerKeyInput(player, kil));
 
-		for (int i = 0; i < 10; i++) {
+		for (int i = 0; i < 50; i++) {
 			float posX = (float) (Math.random() * playZone.width);
 			float posY = (float) (Math.random() * playZone.height);
 			try {
 				GameObject enemy = factory.createGameObject("enemy_" + i).setPosition(posX, posY)
-						.setImage(resourceMgr.getImage("enemyBall")).setSize(16.0f, 16.0f)
-						.setAcceleration((float) Math.random() * 0.010f, (float) Math.random() * 0.010f)
-						.setPriority(2 + i).setMass(50.0f).setFriction(0.90f).setElasticity(0.80f).setOffset(16, 16);
+						.setImage(resourceMgr.getImage("enemyBall")).setSize(24.0f, 24.0f)
+						.setAcceleration((float) Math.random() * 0.005f, (float) Math.random() * 0.005f)
+						.setPriority(2 + i).setMass(50.0f).setFriction(0.95f).setElasticity(0.890f)
+						.setOffset(12.0f, 12.0f);
 				add(enemy);
 			} catch (ResourceUnknownException e) {
 				System.err.println("Unable to retrieve the enemyBall resource");
@@ -2076,6 +2091,22 @@ public class Game extends JPanel {
 
 		// Add a piece of wind to our world !
 		// world.addForce(new Vector2D("some-wind", 0.5f, 0.0f));
+
+	}
+
+	private void randomizeEnemies() {
+		for (GameObject o : objects) {
+			if (o.name.startsWith("enemy_")) {
+
+				o.forces.clear();
+				o.velocity.x=0;
+				o.velocity.y=0;
+				o.setAcceleration((float) ((Math.random() * 200f) - 100f),
+						(float) ((Math.random() * 200f) - 100f));
+				o.gravity=new Vector2D("no-gravity",0.0f,0.0f);
+				logger.info("add a new acceleration to {}:{}", o.name, o.acceleration);
+			}
+		}
 
 	}
 
@@ -2197,6 +2228,10 @@ public class Game extends JPanel {
 		collisionMgr.update(this, elapsed);
 		if (world != null && world.activeCam != null) {
 			world.activeCam.updatePhysic(elapsed);
+		}
+		if (randomizeEnemies) {
+			randomizeEnemies();
+			randomizeEnemies = false;
 		}
 	}
 
