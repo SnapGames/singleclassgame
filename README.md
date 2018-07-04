@@ -17,11 +17,11 @@ The game project git repository contains:
 
 ```
 singleclassgame
-|_ .github                   \      
-|  |_ ISSUE_TEMPLATE          |         
-|     |_ Bug_report.md         > Some github specific files
-|     |_ Feature_request.md   |
-|                            /
+|_ .github                               \
+|  |_ ISSUE_TEMPLATE                      |
+|     |_ Bug_report.md                     > Some github specific files
+|     |_ Feature_request.md               |
+|                                        /
 |_ src
 |  |_ main                               \ 
 |  |  |_ fr.snapgames.game.oneclassgame   |
@@ -48,19 +48,41 @@ used here are declared into the Game class.
 
 ```
   Game
+  |_ COnfiguration
   |_ KeyInputListener
   |_ GameObject
   |_ GameKeyListener
   |_ PlayerKeyListener
+  |_ ...
 ```
 
-## Classes
+## Classes Overview
 
-- `KeyInputListener` is the main KeyListenr for the window displaying the game,
+### Some basics
+
+- `Configuration` class is used to store `key=value` as a configuration store purpose,
+- `ResourceManager`provides a basic service to load images and reduce memory usage,
+- `Vector2D`proposes a simplified 2D math vector implementation to manage physics computation,
+- `Window` is what it means to be a Window encapsulation of JDK one,
+- `VersionTracer` class proposes a dependencies and versions tracker about embedded libraries. 
+
+### Game specific
+
 - `GameObject`is a default object managed by the game to be updated and displayed,
+- `KeyInputListener` is the main KeyListenr for the window displaying the game,
 - `GameKeyListener` is a key command manager for the Game itself. this is where  the **exit** and **pause** request are processed,
 - `PlayerKeyListener` is a specific key listener to animate and move the **player** `GameObject` instance.
 
+### Physics
+
+- `World` a class to manage a world context containing some physics parameters for the Physic computation performed at GameObject level (see `GameObect#updatePhysic(float)`), like wind, world gravity, and soon other parameters. 
+
+### Collision detection and processing
+
+- To manage Objects, I add a `BoundingBox` and a `BoundingBoxType` to encapsulate object with multiple box types (Rectangle, Circle, Ellipse, Capsules, etc...)
+- A `QuadTree` implementation (from internet) provide the necessary structure to manage 2D space splitting to reduce Collision computation.
+- `CollisionManager`is a class to detect and manage collision events between `GameObject`'s, A `CollisionResponseProcessor` interface can be implemented to manage those events for some specific case.
+- 
 
 To be continued ...
 

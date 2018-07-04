@@ -98,6 +98,8 @@ public class Game extends JPanel {
 	// Play zone dimension
 	private Dimension playZone;
 
+	private List<CollisionResponseProcessor> processors = new ArrayList<>();
+
 	/**
 	 * Internal flag to request EXIT.
 	 */
@@ -269,10 +271,8 @@ public class Game extends JPanel {
 		/**
 		 * CReate a window containing the Game with a title.
 		 *
-		 * @param game
-		 *            the game to display in the window.
-		 * @param title
-		 *            the title of the window.
+		 * @param game  the game to display in the window.
+		 * @param title the title of the window.
 		 */
 		Window(Game game, String title) {
 			frame = new JFrame(title);
@@ -315,8 +315,7 @@ public class Game extends JPanel {
 		/**
 		 * Set the window title.
 		 *
-		 * @param title
-		 *            the new window title.
+		 * @param title the new window title.
 		 */
 		public void setTitle(String title) {
 			frame.setTitle(title);
@@ -451,10 +450,8 @@ public class Game extends JPanel {
 		/**
 		 * Add a resource to the set.
 		 *
-		 * @param name
-		 *            name for this resource
-		 * @param path
-		 *            path to the rsource.
+		 * @param name name for this resource
+		 * @param path path to the rsource.
 		 */
 		public void addResource(String name, String path) {
 			// Manage image (PNG or JPG)
@@ -472,8 +469,7 @@ public class Game extends JPanel {
 		/**
 		 * retrieve an image from the resource set.
 		 *
-		 * @param name
-		 *            the name of the resource to retrieve.
+		 * @param name the name of the resource to retrieve.
 		 * @return the BufferedImage extracted from the resource set.
 		 * @throws ResourceUnknownException
 		 */
@@ -581,8 +577,7 @@ public class Game extends JPanel {
 		/**
 		 * Return current state of the key for <code>keyCode</code>.
 		 * 
-		 * @param keyCode
-		 *            Key code to be verified.
+		 * @param keyCode Key code to be verified.
 		 * @return true if pushed, else false.
 		 */
 		public boolean getKey(int keyCode) {
@@ -592,8 +587,7 @@ public class Game extends JPanel {
 		/**
 		 * Return the previous state of the key for <code>KeyCode</code>.
 		 * 
-		 * @param keyCode
-		 *            the Key code of the key to be verified.
+		 * @param keyCode the Key code of the key to be verified.
 		 * @return true if previously pushed, else false.
 		 */
 		public boolean getPrevious(int keyCode) {
@@ -675,8 +669,7 @@ public class Game extends JPanel {
 		/**
 		 * Compute distance between this vector and the vector <code>v</code>.
 		 *
-		 * @param v
-		 *            the vector to compute distance with.
+		 * @param v the vector to compute distance with.
 		 * @return
 		 */
 		public float distance(Vector2D v) {
@@ -732,6 +725,57 @@ public class Game extends JPanel {
 		BoundingBox getBoundingBox();
 
 		void addCollider(Collidable c);
+	}
+
+	/**
+	 * This is a simple response processor 
+	 * @author Frédéric Delorme
+	 *
+	 */
+	public class ColliderResponse implements CollisionResponseProcessor {
+
+		/*
+		 * (non-Javadoc)
+		 * 
+		 * @see
+		 * fr.snapgames.game.singleclassgame.Game.CollisionResponseProcessor#onCollide(
+		 * fr.snapgames.game.singleclassgame.Game.GameObject,
+		 * fr.snapgames.game.singleclassgame.Game.GameObject)
+		 */
+		@Override
+		public void onCollide(GameObject o1, GameObject o2) {
+			if (o1.name.startsWith("player")) {
+				if (o2.lifeDuration > 0) {
+					o2.lifeDuration = 0;
+				}
+				Vector2D vR = o2.velocity.add(o1.velocity);
+				vR.multiply(-1 * o2.elasticity * o2.friction * o1.elasticity * o1.friction);
+				o2.velocity = vR;
+				
+				o1.velocity.x=0;
+				o1.velocity.y=0;
+				o1.acceleration.x=0;
+				o1.acceleration.y=0;
+			}
+		}
+
+	}
+
+	/**
+	 * Interface explaining how to implement a Collision response process.
+	 * 
+	 * @author Frédéric Delorme
+	 *
+	 */
+	public interface CollisionResponseProcessor {
+		/**
+		 * When a Collision occurred, this Collision Response Processor method is called
+		 * where `o1` and `o2` are the collision players.
+		 * 
+		 * @param o1 First GameObject participating in collision.
+		 * @param o2 Second GameObject participating in collision.
+		 */
+		public void onCollide(GameObject o1, GameObject o2);
 	}
 
 	/**
@@ -814,7 +858,12 @@ public class Game extends JPanel {
 					if (!o.name.equals(ago.name) && ago.bBox.intersect(o.bBox) == 1) {
 						o.addCollider(ago);
 						ago.addCollider(o);
-						logger.debug("object {} collide object {}", o.name, ago.name);
+						if (processors != null && !processors.isEmpty()) {
+							for (CollisionResponseProcessor crp : processors) {
+								crp.onCollide(o, ago);
+							}
+						}
+						logger.info("object {} collide object {}", o.name, ago.name);
 					}
 				}
 			}
@@ -825,6 +874,19 @@ public class Game extends JPanel {
 			quadTree.draw(g);
 		}
 
+		/**
+		 * Add a collision response processor to the processors list.
+		 * 
+		 * @param crp the CollisionResponseProcessor implementation to be added to the
+		 *            called stack.
+		 */
+		public void registerProcessor(CollisionResponseProcessor crp) {
+			if (crp != null) {
+				processors.add(crp);
+			} else {
+				logger.error("Unable to add a null CollisionResponseProcessor");
+			}
+		}
 	}
 
 	/**
@@ -852,10 +914,8 @@ public class Game extends JPanel {
 		 * this(0, 0, 0, width, height)
 		 * </code>
 		 * 
-		 * @param width
-		 *            your game world width in units
-		 * @param height
-		 *            your game world height in units
+		 * @param width  your game world width in units
+		 * @param height your game world height in units
 		 */
 		public QuadTree(float width, float height) {
 			this(0, 0, 0, width, height);
@@ -863,8 +923,7 @@ public class Game extends JPanel {
 
 		/**
 		 * 
-		 * @param pLevel
-		 *            start at level 0 if you're creating an empty quadtree
+		 * @param pLevel start at level 0 if you're creating an empty quadtree
 		 * @param x
 		 * @param y
 		 * @param width
@@ -1113,8 +1172,7 @@ public class Game extends JPanel {
 		/**
 		 * Define the BoundingBoxType for this BoundingBox.
 		 * 
-		 * @param type
-		 *            type of the bounding box
+		 * @param type type of the bounding box
 		 * @return this object.
 		 * @see BoundingBoxType
 		 */
@@ -1175,6 +1233,8 @@ public class Game extends JPanel {
 		float friction = 0.92f;
 		float elasticity = 0.60f;
 
+		int lifeDuration = 0;
+
 		BufferedImage image = null;
 
 		int priority = 0;
@@ -1190,8 +1250,7 @@ public class Game extends JPanel {
 		/**
 		 * Create a new basic Object entity with a <code>name</code>.
 		 *
-		 * @param name
-		 *            the name of this object.
+		 * @param name the name of this object.
 		 */
 		private GameObject(String name) {
 			this.name = name;
@@ -1203,12 +1262,9 @@ public class Game extends JPanel {
 		 * Create a new Object entity with a <code>name</code> and a position
 		 * <code>(x,y)</code>.
 		 *
-		 * @param name
-		 *            the name of this object.
-		 * @param x
-		 *            the X position of this object.
-		 * @param y
-		 *            the Y position of this object.
+		 * @param name the name of this object.
+		 * @param x    the X position of this object.
+		 * @param y    the Y position of this object.
 		 */
 		private GameObject(String name, float x, float y) {
 			this(name);
@@ -1220,12 +1276,13 @@ public class Game extends JPanel {
 		 * Update all physic according the <code>elapsed</code> time since previous
 		 * call.
 		 *
-		 * @param elapsed
-		 *            time elapsed since previous call.
+		 * @param elapsed time elapsed since previous call.
 		 */
 		public void updatePhysic(float dt) {
 
 			float t = dt * 1f;
+			// -- update the life of this object (in 1/60 sec.)
+			lifeDuration--;
 
 			// -- Update Physics (System)
 			forces.addAll(world.forces);
@@ -1286,6 +1343,8 @@ public class Game extends JPanel {
 								(int) (position.y + (offset.y) + (acceleration.y * 10)));
 						g.drawString(String.format("a:(%4.2f,%4.2f)", acceleration.x, acceleration.y),
 								(int) (position.x + width + 4), (int) position.y + 30);
+						g.drawString(String.format("ld:(%06d)", lifeDuration), (int) (position.x + width + 4),
+								(int) position.y + 50);
 					}
 				}
 			}
@@ -1431,15 +1490,24 @@ public class Game extends JPanel {
 		/**
 		 * Set Object size by setting width and height.
 		 *
-		 * @param width
-		 *            the width of the object
-		 * @param height
-		 *            the height of the object.
+		 * @param width  the width of the object
+		 * @param height the height of the object.
 		 */
 		public GameObject setSize(float width, float height) {
 			this.width = (int) width;
 			this.height = (int) height;
 			bBox.update(this);
+			return this;
+		}
+
+		/**
+		 * Set the life duration for this object.
+		 * 
+		 * @param ld
+		 * @return
+		 */
+		public GameObject setLifeDuration(int ld) {
+			this.lifeDuration = ld;
 			return this;
 		}
 
@@ -1457,7 +1525,7 @@ public class Game extends JPanel {
 		@Override
 		public void addCollider(Collidable c) {
 			colliders.add(c);
-
+			// this.velocity.multiply(-this.elasticity*this.friction);
 		}
 	}
 
@@ -1473,8 +1541,7 @@ public class Game extends JPanel {
 		/**
 		 * Create a new GameObject.
 		 *
-		 * @param name
-		 *            the name of the new object.
+		 * @param name the name of the new object.
 		 * @return
 		 */
 		public GameObject createGameObject(String name) {
@@ -1484,8 +1551,7 @@ public class Game extends JPanel {
 		/**
 		 * Create a new Camera.
 		 *
-		 * @param name
-		 *            the name of the new camera.
+		 * @param name the name of the new camera.
 		 * @return
 		 */
 		public Camera createCamera(String name) {
@@ -1495,10 +1561,8 @@ public class Game extends JPanel {
 		/**
 		 * Dynamic Factory create.
 		 *
-		 * @param clazz
-		 *            class to be instantiated
-		 * @param name
-		 *            name for this object.
+		 * @param clazz class to be instantiated
+		 * @param name  name for this object.
 		 * @return
 		 */
 		public Object create(Class<? extends GameObject> clazz, String name) {
@@ -1856,8 +1920,7 @@ public class Game extends JPanel {
 		/**
 		 * retrieve a value from configuraiton.properties file.
 		 *
-		 * @param key
-		 *            key configuration to be retrieved.
+		 * @param key key configuration to be retrieved.
 		 * @return String value
 		 */
 		private String getConfig(String key) {
@@ -1973,8 +2036,7 @@ public class Game extends JPanel {
 	/**
 	 * Create the Game window based on configuration and/or args.
 	 *
-	 * @param args
-	 *            list of command line argument send to java program.
+	 * @param args list of command line argument send to java program.
 	 */
 	private void createWindow(String[] args) {
 
@@ -2046,6 +2108,8 @@ public class Game extends JPanel {
 
 		// Define Collision manage playground.
 		collisionMgr.setDimension(playZone);
+		// register the collision response processor for our demo.
+		collisionMgr.registerProcessor(new ColliderResponse());
 
 		// read image resources
 		resourceMgr.addResource("playerBall", "res/images/blue-bouncing-ball-64x64.png");
@@ -2056,8 +2120,8 @@ public class Game extends JPanel {
 
 			player = factory.createGameObject("player").setPosition(50, 50).setImage(resourceMgr.getImage("playerBall"))
 					.setMoveFactor(0.50f).setMass(100f).setFriction(0.30f).setElasticity(0.32f).offsetAtCenter()
-					.setPriority(1).setDebugColor(Color.RED);
-
+					.setPriority(1).setDebugColor(Color.RED).setLifeDuration(100000);
+			player.bBox.type = BoundingBoxType.CIRCLE;
 			add(player);
 		} catch (ResourceUnknownException e) {
 			System.err.println("Unable to retrieve the playerBall resource");
@@ -2075,7 +2139,8 @@ public class Game extends JPanel {
 						.setImage(resourceMgr.getImage("enemyBall")).setSize(24.0f, 24.0f)
 						.setAcceleration((float) Math.random() * 0.005f, (float) Math.random() * 0.005f)
 						.setPriority(2 + i).setMass(50.0f).setFriction(0.95f).setElasticity(0.890f)
-						.setOffset(12.0f, 12.0f);
+						.setOffset(12.0f, 12.0f).setLifeDuration(300);
+				enemy.bBox.type = BoundingBoxType.CIRCLE;
 				add(enemy);
 			} catch (ResourceUnknownException e) {
 				System.err.println("Unable to retrieve the enemyBall resource");
@@ -2099,11 +2164,13 @@ public class Game extends JPanel {
 			if (o.name.startsWith("enemy_")) {
 
 				o.forces.clear();
-				o.velocity.x=0;
-				o.velocity.y=0;
-				o.setAcceleration((float) ((Math.random() * 200f) - 100f),
-						(float) ((Math.random() * 200f) - 100f));
-				o.gravity=new Vector2D("no-gravity",0.0f,0.0f);
+				o.setVelocity(0, 0);
+				o.velocity.x = 0;
+				o.velocity.y = 0;
+				o.setAcceleration(
+						(float) ((Math.random() * 50f) - 25f), 
+						(float) ((Math.random() * 50f) - 25f));
+				o.gravity = new Vector2D("gravity", 0.0f, -9.81f);
 				logger.info("add a new acceleration to {}:{}", o.name, o.acceleration);
 			}
 		}
@@ -2154,7 +2221,7 @@ public class Game extends JPanel {
 
 		// move up (with extra speed !)
 		if (kil.keys[KeyEvent.VK_UP]) {
-			player.forces.add(new Vector2D("move-up", 0.0f, -player.moveFactor * 10.0f));
+			player.forces.add(new Vector2D("move-up", 0.0f, -player.moveFactor * 20.0f));
 			logger.debug("player move up y+={}", -player.moveFactor);
 		}
 		// move down
@@ -2215,8 +2282,7 @@ public class Game extends JPanel {
 	/**
 	 * Update all the objects of the game.
 	 *
-	 * @param elapsed
-	 *            time elapsed since previous call.
+	 * @param elapsed time elapsed since previous call.
 	 */
 	public void update(float elapsed) {
 		if (objects != null && objects.size() > 0) {
@@ -2239,10 +2305,8 @@ public class Game extends JPanel {
 	 * Constrained {@link GameObject} <code>object</code> to the Play Zone
 	 * <code>constrainedZone</code>.
 	 *
-	 * @param constrainedZone
-	 *            the zone where to constrains game object.
-	 * @param object
-	 *            the object to be constrained to the play zone.
+	 * @param constrainedZone the zone where to constrains game object.
+	 * @param object          the object to be constrained to the play zone.
 	 */
 	private void constrainsObjectToPlayZone(Dimension constrainedZone, GameObject object) {
 
@@ -2360,8 +2424,7 @@ public class Game extends JPanel {
 	/**
 	 * Add a GameObject to the list of object managed by the Game.
 	 *
-	 * @param o
-	 *            the GameObject to add to the list.
+	 * @param o the GameObject to add to the list.
 	 */
 	public void add(GameObject o) {
 		o.forces.addAll(world.forces);
