@@ -19,6 +19,9 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
 import javax.sound.sampled.FloatControl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Class to play and manage a sound clip from file.
  * 
@@ -27,6 +30,7 @@ import javax.sound.sampled.FloatControl;
  */
 public class SoundClip {
 
+	private static final Logger logger = LoggerFactory.getLogger(SoundClip.class);
 	/**
 	 * Java Sound clip to be read.
 	 */
@@ -41,30 +45,32 @@ public class SoundClip {
 	private FloatControl panControl;
 
 	/**
-	 * Initialize the sound clip ready to play from the file at
-	 * <code>path</code>.
+	 * Initialize the sound clip ready to play from the file at <code>path</code>.
 	 * 
-	 * @param path
-	 *            Path to the sound clip to be read.
+	 * @param path Path to the sound clip to be read.
 	 */
 	public SoundClip(String path) {
 		try {
-			InputStream audioSrc = SoundClip.class.getResourceAsStream(path);
-			InputStream bufferedIn = new BufferedInputStream(audioSrc);
-			AudioInputStream ais = AudioSystem.getAudioInputStream(bufferedIn);
-			AudioFormat baseFormat = ais.getFormat();
+			InputStream audioSrc = SoundClip.class.getResourceAsStream("/"+path);
+			if (audioSrc == null) {
+				logger.error("unable to read the sound file {}", path);
 
-			AudioFormat decodeFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, baseFormat.getSampleRate(), 16,
-					baseFormat.getChannels(), baseFormat.getChannels() * 2, baseFormat.getSampleRate(), false);
-			AudioInputStream dais = AudioSystem.getAudioInputStream(decodeFormat, ais);
-			clip = AudioSystem.getClip();
-			clip.open(dais);
+			} else {
+				InputStream bufferedIn = new BufferedInputStream(audioSrc);
+				AudioInputStream ais = AudioSystem.getAudioInputStream(bufferedIn);
+				AudioFormat baseFormat = ais.getFormat();
 
-			gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
-			panControl = (FloatControl) clip.getControl(FloatControl.Type.PAN);
+				AudioFormat decodeFormat = new AudioFormat(AudioFormat.Encoding.PCM_SIGNED, baseFormat.getSampleRate(),
+						16, baseFormat.getChannels(), baseFormat.getChannels() * 2, baseFormat.getSampleRate(), false);
+				AudioInputStream dais = AudioSystem.getAudioInputStream(decodeFormat, ais);
+				clip = AudioSystem.getClip();
+				clip.open(dais);
 
+				gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+				//panControl = (FloatControl) clip.getControl(FloatControl.Type.PAN);
+			}
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("unable to play the sound file {}", path, e);
 		}
 
 	}
