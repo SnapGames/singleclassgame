@@ -162,7 +162,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme
 	 */
-	class VersionTracker {
+	public class VersionTracker {
 		private final Logger logger = LoggerFactory.getLogger(VersionTracker.class);
 		Model model = null;
 
@@ -262,7 +262,7 @@ public class Game extends JPanel {
 	 * 
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
-	class Window {
+	public class Window {
 		/**
 		 * rendering frame.
 		 */
@@ -334,7 +334,7 @@ public class Game extends JPanel {
 	/**
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
-	class World {
+	public class World {
 
 		/**
 		 * the default gravity value for this world (can be overridden at world
@@ -422,7 +422,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
 	 */
-	class ResourceUnknownException extends Exception {
+	public class ResourceUnknownException extends Exception {
 
 		/**
 		 *
@@ -444,7 +444,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme <frederic.delorme@snapgames.fr>
 	 */
-	class ResourceManager {
+	public class ResourceManager {
 		private Map<String, Object> objects = new HashMap<>();
 
 		/**
@@ -496,7 +496,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
-	class KeyInputListener implements KeyListener {
+	public class KeyInputListener implements KeyListener {
 		/**
 		 * current state of the key
 		 */
@@ -600,7 +600,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
-	class Vector2D {
+	public class Vector2D {
 		private String name;
 
 		/**
@@ -728,7 +728,8 @@ public class Game extends JPanel {
 	}
 
 	/**
-	 * This is a simple response processor 
+	 * This is a simple response processor
+	 * 
 	 * @author Frédéric Delorme
 	 *
 	 */
@@ -751,11 +752,11 @@ public class Game extends JPanel {
 				Vector2D vR = o2.velocity.add(o1.velocity);
 				vR.multiply(-1 * o2.elasticity * o2.friction * o1.elasticity * o1.friction);
 				o2.velocity = vR;
-				
-				o1.velocity.x=0;
-				o1.velocity.y=0;
-				o1.acceleration.x=0;
-				o1.acceleration.y=0;
+
+				o1.velocity.x = 0;
+				o1.velocity.y = 0;
+				o1.acceleration.x = 0;
+				o1.acceleration.y = 0;
 			}
 		}
 
@@ -1096,12 +1097,20 @@ public class Game extends JPanel {
 	}
 
 	/**
-	 * Bounding Box type can have 3 values.
-	 *
+	 * Bounding Box type can have 3 values. * `NONE` No bounding box, * `RECTANGLE`
+	 * a simple rectangle as a bounding box, * `CIRCLE` a circle, * `CAPSULE` a
+	 * capsule composed of 2 circles and a distance between its axes, * `POINTS` a
+	 * list of points defining an object's frontier.
+	 * 
 	 * @author Frédéric Delorme
 	 */
-	enum BoundingBoxType {
-		NONE, RECTANGLE, CIRCLE, CAPSULE, POINTS;
+	public enum BoundingBoxType {
+		NONE,
+		/** No boundigbox */
+		RECTANGLE, // a simple rectangle as a bounding box
+		CIRCLE, // a circle
+		CAPSULE, // a capsule composed of 2 circles and a distance between its axes.
+		POINTS; // a list of points defining a perimeter.
 	}
 
 	/**
@@ -1109,7 +1118,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme
 	 */
-	class BoundingBox {
+	public class BoundingBox {
 
 		/**
 		 * position for the boundingbox.
@@ -1188,21 +1197,28 @@ public class Game extends JPanel {
 	 * displayed objects are <code>GameObject</code>.
 	 * <p>
 	 * This entity intends to propose all the metadata to compute object behavior
-	 * and graphical rendering, like
+	 * and graphical rendering, like:
 	 * <ul>
-	 * <li><code>position</code>,
-	 * <li><code>velocity</code>,
-	 * <li><code>acceleration</code>,
+	 * <li><code>position</code> current position of the object,
+	 * <li><code>velocity</code> the object's current velocity,
+	 * <li><code>acceleration</code> the object's current acceleration.
 	 * </ul>
 	 * <p>
-	 * but also some physic information as
+	 * Some attributes to compute more realistic physical things:
 	 * <ul>
-	 * <li><code>mass</code>,
-	 * <li><code>gravity</code>,
-	 * <li><code>material</code>,
-	 * <li><code>friction</code>,
-	 * <li><code>elasticity</code>.
+	 * <li><code>forces</code> used to compute physic behavior,
 	 * </ul>
+	 * <p>
+	 * But also some material characteristics as:
+	 * <ul>
+	 * <li><code>mass</code> the mass of the object,
+	 * <li><code>gravity</code> its affected gravity,
+	 * <li><code>friction</code> the friction factor is case of contact,
+	 * <li><code>elasticity</code> the elasticity characteristic of the object 's
+	 * material.
+	 * </ul>
+	 * <p>
+	 * And soon we will add real gravity force computation between objects.
 	 *
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
@@ -1353,8 +1369,8 @@ public class Game extends JPanel {
 		/**
 		 * Set the acceleration for this object.
 		 *
-		 * @param ax
-		 * @param ay
+		 * @param ax X component for the acceleration
+		 * @param ay Y component for the acceleration
 		 */
 		public GameObject setAcceleration(float ax, float ay) {
 			this.acceleration.x = ax;
@@ -1600,7 +1616,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme
 	 */
-	class Camera extends GameObject {
+	public class Camera extends GameObject {
 
 		private GameObject trackedObject = null;
 		private float tween = 1.0f;
@@ -1701,7 +1717,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
-	class GameKeyInput implements KeyListener {
+	public class GameKeyInput implements KeyListener {
 		/*
 		 * (non-Javadoc)
 		 *
@@ -1773,7 +1789,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme<frederic.delorme@snapgames.fr>
 	 */
-	class PlayerKeyInput implements KeyListener {
+	public class PlayerKeyInput implements KeyListener {
 
 		GameObject player = null;
 		KeyInputListener kil = null;
@@ -1848,7 +1864,7 @@ public class Game extends JPanel {
 	 *
 	 * @author Frédéric Delorme
 	 */
-	static class Configuration {
+	public static class Configuration {
 
 		private static final Logger logger = LoggerFactory.getLogger(Configuration.class);
 
@@ -2167,9 +2183,7 @@ public class Game extends JPanel {
 				o.setVelocity(0, 0);
 				o.velocity.x = 0;
 				o.velocity.y = 0;
-				o.setAcceleration(
-						(float) ((Math.random() * 50f) - 25f), 
-						(float) ((Math.random() * 50f) - 25f));
+				o.setAcceleration((float) ((Math.random() * 50f) - 25f), (float) ((Math.random() * 50f) - 25f));
 				o.gravity = new Vector2D("gravity", 0.0f, -9.81f);
 				logger.info("add a new acceleration to {}:{}", o.name, o.acceleration);
 			}

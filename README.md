@@ -1,19 +1,19 @@
 # Single Class Game
 
-[![Continuous Travis integration status](https://travis-ci.org/SnapGames/singleclassgame.svg?branch=master)](https://travis-ci.org/SnapGames/singleclassgame "Open the Travis-CI build job") [![VersionEye dependencies verification](https://www.versioneye.com/user/projects/5af2f8ed0fb24f0e57e3d81f/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/5af2f8ed0fb24f0e57e3d81f?child=summary "open the version eye status report")
+[![Continuous Travis integration status](https://travis-ci.org/SnapGames/singleclassgame.svg?branch=master)](https://travis-ci.org/SnapGames/singleclassgame "Open the Travis-CI build job")
 
 ## Presentation
 
-A Single Class Game attempt to bring in a minimalistic scope all the commons and 
+A Single Class Game attempt to bring in a minimum scope all the commons and 
 standards game stack.
 
-This small project based on some knowledge found on the internet (so, you know 
-that internet is the truth :) You will be happy to dicosver a simple way to 
+This small project based on some knowledge found on the Internet (so, you know 
+that Internet is the truth :) You will be happy to discover a simple way to 
 develop and build a small java game.
 
 ## Project structure
 
-The game project git repository contains: 
+The [game project](https://github.com/snapgames/singleclassgame) repository contains: 
 
 ```
 singleclassgame
@@ -69,6 +69,7 @@ used here are declared into the Game class.
 ### Game specific
 
 - `GameObject`is a default object managed by the game to be updated and displayed,
+- a `Camera` object to make window view follow another object,
 - `KeyInputListener` is the main KeyListenr for the window displaying the game,
 - `GameKeyListener` is a key command manager for the Game itself. this is where  the **exit** and **pause** request are processed,
 - `PlayerKeyListener` is a specific key listener to animate and move the **player** `GameObject` instance.
@@ -81,7 +82,7 @@ used here are declared into the Game class.
 
 - To manage Objects, I add a `BoundingBox` and a `BoundingBoxType` to encapsulate object with multiple box types (Rectangle, Circle, Ellipse, Capsules, etc...)
 - A `QuadTree` implementation (from internet) provide the necessary structure to manage 2D space splitting to reduce Collision computation.
-- `CollisionManager`is a class to detect and manage collision events between `GameObject`'s, A `CollisionResponseProcessor` interface can be implemented to manage those events for some specific case.
+- `CollisionManager` is a class to detect and manage collision events between `GameObject`s. A `CollisionResponseProcessor` interface can be implemented to manage those events for some specific case; `ColliderResponse` is one of it.
 - 
 
 To be continued ...
