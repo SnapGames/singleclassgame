@@ -83,9 +83,8 @@ used here are declared into the Game class.
 - To manage Objects, I add a `BoundingBox` and a `BoundingBoxType` to encapsulate object with multiple box types (Rectangle, Circle, Ellipse, Capsules, etc...)
 - A `QuadTree` implementation (from internet) provide the necessary structure to manage 2D space splitting to reduce Collision computation.
 - `CollisionManager` is a class to detect and manage collision events between `GameObject`s. A `CollisionResponseProcessor` interface can be implemented to manage those events for some specific case; `ColliderResponse` is one of it.
-- 
 
-To be continued ...
+>Must add some interactions between "player" and a map.
 
 
 Fred D.
