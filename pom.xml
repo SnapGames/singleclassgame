@@ -44,7 +44,6 @@
 		</dependency>
 
 		<!-- Command line parameters -->
-
 		<!-- https://mvnrepository.com/artifact/commons-cli/commons-cli
 		<dependency>
 			<groupId>commons-cli</groupId>
@@ -53,19 +52,18 @@
 		</dependency -->
 
 		<!-- Audio and Music system -->
-
-		<!-- https://mvnrepository.com/artifact/com.googlecode.soundlibs/jlayer
+		<!-- https://mvnrepository.com/artifact/com.googlecode.soundlibs/jlayer -->
 		<dependency>
 			<groupId>com.googlecode.soundlibs</groupId>
 			<artifactId>jlayer</artifactId>
 			<version>1.0.1-2</version>
-		</dependency -->
-		<!-- https://mvnrepository.com/artifact/com.googlecode.soundlibs/mp3spi
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/com.googlecode.soundlibs/mp3spi -->
 		<dependency>
 			<groupId>com.googlecode.soundlibs</groupId>
 			<artifactId>mp3spi</artifactId>
 			<version>1.9.5-2</version>
-		</dependency -->
+		</dependency>
 
 		<!-- Components and dependency version tracking -->
 		<!-- https://mvnrepository.com/artifact/org.apache.maven/maven-model -->

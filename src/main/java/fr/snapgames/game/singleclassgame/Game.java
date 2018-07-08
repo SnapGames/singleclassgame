@@ -51,6 +51,8 @@ import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import fr.snapgames.game.singleclassgame.audio.SoundControl;
+
 /**
  * <p>
  * This small class is a tutorial on how to develop a simple game with Java.
@@ -152,8 +154,19 @@ public class Game extends JPanel {
 	 */
 	GameObject player;
 
+	/**
+	 * This is the collision manager.
+	 */
 	private CollisionManager collisionMgr;
 
+	/**
+	 * This is the sound controller.
+	 */
+	private SoundControl soundControl;
+
+	/**
+	 * A flag to request a randomization of the enemies moves.
+	 */
 	public boolean randomizeEnemies;
 
 	/**
@@ -751,13 +764,51 @@ public class Game extends JPanel {
 				}
 				Vector2D vR = o2.velocity.add(o1.velocity);
 				vR.multiply(-1 * o2.elasticity * o2.friction * o1.elasticity * o1.friction);
-				o2.velocity = vR;
-
-				o1.velocity.x = 0;
-				o1.velocity.y = 0;
-				o1.acceleration.x = 0;
-				o1.acceleration.y = 0;
+				//o2.velocity = vR;
+				o2.acceleration.multiply(-1 * o2.elasticity * o2.friction * o1.elasticity * o1.friction);
+				computePosition(o2,o1);
+				// o1.velocity.x = 0;
+				// o1.velocity.y = 0;
+				// o1.acceleration.x = 0;
+				// o1.acceleration.y = 0;
+				
+				soundControl.play("boing");
+				
 			}
+		}
+
+		private void computePosition(GameObject o1, GameObject o2) {
+			boolean left,right,top,bottom;
+			Vector2D o1offset = o1.position;
+			o1offset.x += o1.width/2; 
+			o1offset.y += o1.height/2; 
+
+			Vector2D o2offset = o2.position;
+			o2offset.x += o2.width/2; 
+			o2offset.y += o2.height/2; 
+
+			left = o2offset.x<o1offset.x;
+			right = o2offset.x>o1offset.x;
+			top = o2offset.y<o1offset.y;
+			bottom = o2offset.y>o1offset.y;
+			
+			/**
+			 * Move on horizontal axis.
+			 */
+			if(left) {
+				o2.position.x = o1.position.y-(o2.width/2);
+			}else if(right) {
+				o2.position.x = o1.position.y+(o1.width/2);
+			}
+			/** 
+			 * Move on vertical axis
+			 */
+			if (top){
+				o2.position.y = o1.position.y+(o2.height/2);
+			}else if (bottom) {
+				o2.position.y = o1.position.y-(o1.height/2);
+			}
+			
 		}
 
 	}
@@ -2085,6 +2136,8 @@ public class Game extends JPanel {
 
 		collisionMgr = new CollisionManager();
 
+		soundControl = SoundControl.getInstance();
+
 		// create window and attach needed things
 		window = new Window(this, title);
 		window.setKeyInputListener(kil);
@@ -2130,6 +2183,9 @@ public class Game extends JPanel {
 		// read image resources
 		resourceMgr.addResource("playerBall", "res/images/blue-bouncing-ball-64x64.png");
 		resourceMgr.addResource("enemyBall", "res/images/red-bouncing-ball-64x64.png");
+		
+		// read Sounds
+		soundControl.load("boing", "res/audio/sounds/boing.wav");
 
 		// Add objects to world.
 		try {

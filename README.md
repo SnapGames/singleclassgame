@@ -84,7 +84,13 @@ used here are declared into the Game class.
 - A `QuadTree` implementation (from internet) provide the necessary structure to manage 2D space splitting to reduce Collision computation.
 - `CollisionManager` is a class to detect and manage collision events between `GameObject`s. A `CollisionResponseProcessor` interface can be implemented to manage those events for some specific case; `ColliderResponse` is one of it.
 
->Must add some interactions between "player" and a map.
+> **NOTE**
+> Must add some interactions between "player" and a map.
 
+## Resources
 
+### Audio
+
+The audio part of this new feature is coming from the [freesound.org](https://freesound.org "go and fine som e sound !"). The magical **boing** is coming from [here](https://freesound.org/people/Greenhourglass/sounds/159376/ "Boing Boing Boing !")
+ 
 Fred D.
