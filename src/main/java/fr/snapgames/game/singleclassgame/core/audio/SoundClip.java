@@ -8,7 +8,7 @@
  * @year 2018
  * @see http://snapgames.fr/
  */
-package fr.snapgames.game.singleclassgame.audio;
+package fr.snapgames.game.singleclassgame.core.audio;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
