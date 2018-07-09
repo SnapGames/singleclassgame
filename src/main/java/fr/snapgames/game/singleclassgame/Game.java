@@ -16,7 +16,6 @@ import java.awt.Dimension;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.Stroke;
-import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -24,26 +23,19 @@ import java.util.List;
 
 import javax.swing.JPanel;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import fr.snapgames.game.singleclassgame.core.audio.SoundControl;
-import fr.snapgames.game.singleclassgame.core.collision.BoundingBoxType;
 import fr.snapgames.game.singleclassgame.core.collision.CollisionManager;
 import fr.snapgames.game.singleclassgame.core.config.Configuration;
 import fr.snapgames.game.singleclassgame.core.config.VersionTracker;
-import fr.snapgames.game.singleclassgame.core.entity.Camera;
 import fr.snapgames.game.singleclassgame.core.entity.GameObject;
-import fr.snapgames.game.singleclassgame.core.entity.ObjectFactory;
 import fr.snapgames.game.singleclassgame.core.entity.World;
 import fr.snapgames.game.singleclassgame.core.graphics.Window;
 import fr.snapgames.game.singleclassgame.core.input.KeyInputListener;
 import fr.snapgames.game.singleclassgame.core.math.Vector2D;
 import fr.snapgames.game.singleclassgame.core.resources.ResourceManager;
-import fr.snapgames.game.singleclassgame.core.resources.ResourceUnknownException;
-import fr.snapgames.game.singleclassgame.sample.ColliderResponse;
+import fr.snapgames.game.singleclassgame.core.state.GameStateManager;
 import fr.snapgames.game.singleclassgame.sample.GameKeyInput;
-import fr.snapgames.game.singleclassgame.sample.PlayerKeyInput;
+import fr.snapgames.game.singleclassgame.sample.SampleState;
 
 /**
  * <p>
@@ -69,7 +61,7 @@ public class Game extends JPanel {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private static final Logger logger = LoggerFactory.getLogger(Game.class);
+	// private static final Logger logger = LoggerFactory.getLogger(Game.class);
 
 	/**
 	 * Window and Rendering size
@@ -90,7 +82,7 @@ public class Game extends JPanel {
 	// Windows Dimension (Scale factor applied)
 	public Dimension dim;
 	// Play zone dimension
-	private Dimension playZone;
+	public Dimension playZone;
 
 	/**
 	 * Internal flag to request EXIT.
@@ -112,7 +104,7 @@ public class Game extends JPanel {
 	/**
 	 * Game objects to be managed.
 	 */
-	private List<GameObject> objects = new ArrayList<>();
+	public List<GameObject> objects = new ArrayList<>();
 
 	/**
 	 * The main input key listener.
@@ -120,14 +112,9 @@ public class Game extends JPanel {
 	public KeyInputListener kil = null;
 
 	/**
-	 * the object Factory.
-	 */
-	ObjectFactory factory = null;
-
-	/**
 	 * the main resource manager to try and share things.
 	 */
-	private ResourceManager resourceMgr;
+	public ResourceManager resourceMgr;
 
 	/**
 	 * The world object contains physic constrains for the physic engine system.
@@ -140,19 +127,16 @@ public class Game extends JPanel {
 	private Window window;
 
 	/**
-	 * THE player for this game.
-	 */
-	public GameObject player;
-
-	/**
 	 * This is the collision manager.
 	 */
-	private CollisionManager collisionMgr;
+	public CollisionManager collisionMgr;
 
 	/**
 	 * This is the sound controller.
 	 */
 	public SoundControl soundControl;
+
+	public GameStateManager gsm;
 
 	/**
 	 * A flag to request a randomization of the enemies moves.
@@ -165,6 +149,7 @@ public class Game extends JPanel {
 	public Game() {
 		createWindow(null);
 		initialize(null);
+
 	}
 
 	/**
@@ -174,7 +159,7 @@ public class Game extends JPanel {
 	 */
 	private void createWindow(String[] args) {
 
-		Configuration configuration = Configuration.getInstance();
+		Configuration.getInstance();
 
 		// retrieve configuration things
 		int width = Configuration.getInteger("window.width", 320);
@@ -195,10 +180,7 @@ public class Game extends JPanel {
 		// add the default key listener
 		kil = new KeyInputListener();
 
-		// Initialize object factory
-		factory = new ObjectFactory();
-
-		// Set hte default World parameters.
+		// Set the default World parameters.
 		world = new World(new Vector2D("gravity", 0.0f, -0.981f));
 		// Initialize ResourceManager
 		resourceMgr = new ResourceManager();
@@ -246,81 +228,14 @@ public class Game extends JPanel {
 
 		// Define Collision manage playground.
 		collisionMgr.setDimension(playZone);
-		// register the collision response processor for our demo.
-		collisionMgr.registerProcessor(new ColliderResponse());
 
-		// read image resources
-		resourceMgr.addResource("playerBall", "res/images/blue-bouncing-ball-64x64.png");
-		resourceMgr.addResource("enemyBall", "res/images/red-bouncing-ball-64x64.png");
+		gsm = new GameStateManager();
 
-		// read Sounds
-		soundControl.load("boing", "res/audio/sounds/boing.wav");
+		SampleState samp = new SampleState(this);
+		samp.initialize(this);
+		gsm.add(samp);
 
-		// Add objects to world.
-		// ---------------------------------------------------------------------
-		// ---- Add the main player object
-		try {
-			player = ((GameObject) factory.create(this, GameObject.class, "player")).setPosition(50, 50)
-					.setImage(resourceMgr.getImage("playerBall")).setMoveFactor(0.50f).setMass(100f).setFriction(0.30f)
-					.setElasticity(0.32f).offsetAtCenter().setPriority(1).setDebugColor(Color.RED)
-					.setLifeDuration(100000);
-			player.bBox.type = BoundingBoxType.CIRCLE;
-			add(player);
-		} catch (ResourceUnknownException e) {
-			System.err.println("Unable to retrieve the playerBall resource");
-			System.exit(-1);
-		}
-
-		// add specific game player key listener
-		kil.register(new PlayerKeyInput(player, kil));
-
-		// ---- Add a bunch of enemies !
-		for (int i = 0; i < 50; i++) {
-			float posX = (float) (Math.random() * playZone.width);
-			float posY = (float) (Math.random() * playZone.height);
-			try {
-				GameObject enemy = ((GameObject) factory.create(this, GameObject.class, "enemy_" + i))
-						.setPosition(posX, posY).setImage(resourceMgr.getImage("enemyBall")).setSize(24.0f, 24.0f)
-						.setAcceleration((float) Math.random() * 0.005f, (float) Math.random() * 0.005f)
-						.setPriority(2 + i).setMass(50.0f).setFriction(0.95f).setElasticity(0.890f)
-						.setOffset(12.0f, 12.0f).setLifeDuration(300);
-				enemy.bBox.type = BoundingBoxType.CIRCLE;
-				add(enemy);
-			} catch (ResourceUnknownException e) {
-				System.err.println("Unable to retrieve the enemyBall resource");
-				System.exit(-1);
-			}
-		}
-
-		// Other elements to the scene.
-		// ---------------------------------------------------------------------
-		// Add a Camera to the world.
-		Camera cam = (Camera) factory.createCamera(this, "camera").setTrackedObject(player).setTweenFactor(0.22f)
-				.setView(dim).setPosition(0.0f, 0.0f);
-
-		world.addCamera(cam);
-
-		// Add a piece of wind to our world !
-		// world.addForce(new Vector2D("some-wind", 0.5f, 0.0f));
-
-	}
-
-	/**
-	 * Generate randomly enemies position.
-	 */
-	private void randomizeEnemies() {
-		for (GameObject o : objects) {
-			if (o.name.startsWith("enemy_")) {
-
-				o.forces.clear();
-				o.setVelocity(0, 0);
-				o.velocity.x = 0;
-				o.velocity.y = 0;
-				o.setAcceleration((float) ((Math.random() * 50f) - 25f), (float) ((Math.random() * 50f) - 25f));
-				// o.gravity = new Vector2D("gravity", 0.0f, -9.81f);
-				logger.info("add a new acceleration to {}:{}", o.name, o.acceleration);
-			}
-		}
+		gsm.start(this, "SampleState");
 
 	}
 
@@ -338,12 +253,12 @@ public class Game extends JPanel {
 		while (!exit) {
 			currentTime = System.nanoTime();
 			if (previousTime > 0.0f && !pause) {
-				asynchorneInput();
+				gsm.input(this);
 				elapsed = (currentTime - previousTime) / 10000000.0f;
 				if (elapsed < 0.0f) {
 					elapsed = 1.0f;
 				}
-				update(elapsed);
+				gsm.update(this, elapsed);
 			}
 			if (elapsed <= fpsDelay) {
 				render(realFPS, String.format("debug:%d c:%02d t:%04d fps:%03d pause:%s", debug, framesCount,
@@ -362,41 +277,6 @@ public class Game extends JPanel {
 		}
 		dispose();
 		System.exit(0);
-	}
-
-	private void asynchorneInput() {
-
-		// move up (with extra speed !)
-		if (kil.getKey(KeyEvent.VK_UP)) {
-			player.forces.add(new Vector2D("move-up", 0.0f, -player.moveFactor * 20.0f));
-			logger.debug("player move up y+={}", -player.moveFactor);
-		}
-		// move down
-		if (kil.getKey(KeyEvent.VK_DOWN)) {
-			player.forces.add(new Vector2D("move-down", 0.0f, player.moveFactor));
-			logger.debug("player move down y+={}", player.moveFactor);
-		}
-		// move left
-		if (kil.getKey(KeyEvent.VK_LEFT)) {
-			player.forces.add(new Vector2D("move-left", -player.moveFactor, 0.0f));
-			logger.debug("player move left x+={}", player.moveFactor);
-		}
-
-		// move right
-		if (kil.getKey(KeyEvent.VK_RIGHT)) {
-			player.forces.add(new Vector2D("move-right", player.moveFactor, 0.0f));
-			logger.debug("player move left x+={}", -player.moveFactor);
-		}
-
-		// stop any action !
-		if (kil.getKey(KeyEvent.VK_SPACE)) {
-			player.forces.clear();
-			player.velocity.x = 0.0f;
-			player.velocity.y = 0.0f;
-			player.acceleration.x = 0.0f;
-			player.acceleration.y = 0.0f;
-		}
-
 	}
 
 	private void postOperation() {
@@ -433,48 +313,13 @@ public class Game extends JPanel {
 	 */
 	public void update(float elapsed) {
 		if (objects != null && objects.size() > 0) {
-			for (GameObject o : objects) {
-				o.updatePhysic(elapsed);
-				constrainsObjectToPlayZone(playZone, o);
-			}
+			// TODO call gsm.current.update()
 		}
 		collisionMgr.update(this, elapsed);
 		if (world != null && world.activeCam != null) {
 			world.activeCam.updatePhysic(elapsed);
 		}
-		if (randomizeEnemies) {
-			randomizeEnemies();
-			randomizeEnemies = false;
-		}
-	}
 
-	/**
-	 * Constrained {@link GameObject} <code>object</code> to the Play Zone
-	 * <code>constrainedZone</code>.
-	 *
-	 * @param constrainedZone the zone where to constrains game object.
-	 * @param object          the object to be constrained to the play zone.
-	 */
-	private void constrainsObjectToPlayZone(Dimension constrainedZone, GameObject object) {
-
-		if (object.position.x < 0) {
-			object.position.x = 0;
-			object.velocity.x *= -1 * object.elasticity;
-
-		}
-		if (object.position.y < 0) {
-			object.position.y = 0;
-			object.velocity.y *= -1 * object.elasticity;
-		}
-		if (object.position.x > constrainedZone.width - object.width) {
-			object.position.x = constrainedZone.width - object.width;
-			object.velocity.x *= -1 * object.elasticity;
-		}
-		if (object.position.y > constrainedZone.height - object.height) {
-			object.position.y = constrainedZone.height - object.height;
-			object.velocity.y *= -1 * object.elasticity;
-
-		}
 	}
 
 	/**
@@ -500,12 +345,7 @@ public class Game extends JPanel {
 			g.rotate(-world.activeCam.angle);
 		}
 
-		// if objects in the list, draw all those things
-		if (objects != null && objects.size() > 0) {
-			for (GameObject o : objects) {
-				o.render(g);
-			}
-		}
+		gsm.render(this, g);
 
 		if (debug > 2) {
 			g.setColor(Color.LIGHT_GRAY);
@@ -563,7 +403,6 @@ public class Game extends JPanel {
 		dim = null;
 		window = null;
 		kil = null;
-		player = null;
 		resourceMgr = null;
 		buffer = null;
 	}

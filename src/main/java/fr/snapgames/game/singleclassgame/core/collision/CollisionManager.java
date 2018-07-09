@@ -114,7 +114,8 @@ public class CollisionManager {
 		cullingProcess(game, dt);
 
 		List<Collidable> collisionList = new CopyOnWriteArrayList<>();
-		GameObject o = game.player;
+		GameObject o = game.objects.get(0);
+		
 		quadTree.retrieve(collisionList, (Collidable) o);
 		if (collisionList != null && !collisionList.isEmpty()) {
 			for (Collidable s : collisionList) {
