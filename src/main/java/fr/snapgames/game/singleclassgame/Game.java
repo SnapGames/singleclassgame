@@ -37,6 +37,8 @@ import fr.snapgames.game.singleclassgame.core.state.GameStateManager;
 import fr.snapgames.game.singleclassgame.sample.GameKeyInput;
 import fr.snapgames.game.singleclassgame.sample.SampleState;
 
+import fr.snapgames.game.singleclassgame.audio.SoundControl;
+
 /**
  * <p>
  * This small class is a tutorial on how to develop a simple game with Java.
@@ -88,10 +90,6 @@ public class Game extends JPanel {
 	 * Internal flag to request EXIT.
 	 */
 	public boolean exit = false;
-	/**
-	 * internal flag to request pause mode.
-	 */
-	public boolean pause = false;
 	/**
 	 * internal debug level to track things id <code>debug</code>>0.
 	 */
@@ -228,7 +226,6 @@ public class Game extends JPanel {
 
 		// Define Collision manage playground.
 		collisionMgr.setDimension(playZone);
-
 		gsm = new GameStateManager();
 
 		SampleState samp = new SampleState(this);
