@@ -25,9 +25,12 @@ singleclassgame
 |_ src
 |  |_ main                               \ 
 |  |  |_ fr.snapgames.game.oneclassgame   |
-|  |  |  |_ Game.java                      > Project resources
+|  |  |  |_ Game.java                     | 
 |  |_ resources                           |
-|     |_ res                              |
+|     |_ res                               > Project resources
+|        |_ audio                         |
+|           |_ sounds                     |
+|        |_ images                        |
 |        |_ application.ico              /
 |
 |_ .travis.yml                           >  Continuous build config file
@@ -87,6 +90,13 @@ used here are declared into the Game class.
 > **NOTE**
 > Must add some interactions between "player" and a map.
 
+### Sound Manager
+
+To make sounds, the game is enriched with a new SoundController and some entity to manage sounds: SoundClip.
+
+- `SoundControl` is the sound manager class, loading, playing and stopping sounds,
+- `SoundClip` is a piece of sound to be played and managed by the `SoundControl` manager.
+
 ### Game State Manager
 
 One of the most important system in the game, is not only the **Game Loop**, but also the system that can switch from one state of the game (the title screen) to another (the main play state) one without pain: `GameStateManager`. This particular class will manage multiple implementations of the interface named `GameState` to change smoothly the game behavior, corresponding to any game play you want to provide. An abstract class, the `AbstractGameState` will provide the basic and default behavior of each game state.
@@ -113,11 +123,19 @@ Let's see JavaDoc for more information.
 
 #### GameStateManager
 
+The `GameStateManager` is the main class to manage and delegate processing to some specific behavior classes implementing the `GameState` interface.
+
+- You must add your GameState implementation to the stack by calling the `add(GameState)` method.
+- then you can activate your just added state by calling the `start(String name)`. this will automatically called the `deactivate(Game)` method of the previous state, and then call the `activate(Game)` method of your **name** state.
+
+
+Those class methods are called from the main game loop (see Game#run() method) to manage input, update and render things into each of the game states.
+ 
 
 ## Resources
 
 ### Audio
 
-The audio part of this new feature is coming from the [freesound.org](https://freesound.org "go and fine som e sound !"). The magical **boing** is coming from [here](https://freesound.org/people/Greenhourglass/sounds/159376/ "Boing Boing Boing !")
+The audio part of this new feature is coming from the [freesound.org](https://freesound.org "go and fine som e sound !"). The magical **boing** sound is coming from [here](https://freesound.org/people/Greenhourglass/sounds/159376/ "Boing Boing Boing !")
  
 Fred D.

@@ -38,11 +38,16 @@ public class SampleState extends AbstractGameState implements GameState {
 
 	private static final Logger logger = LoggerFactory.getLogger(SampleState.class);
 
+	/**
+	 * THe internal object to manage the player
+	 */
 	GameObject player;
+	
+	/**
+	 * The object factory to easily create some GameObject. 
+	 */
 	ObjectFactory factory;
 	
-	
-
 	/**
 	 * A flag to request a randomization of the enemies moves.
 	 */
@@ -55,38 +60,45 @@ public class SampleState extends AbstractGameState implements GameState {
 		super(game, "SampleState");
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see fr.snapgames.game.singleclassgame.core.state.AbstractGameState#initialize(fr.snapgames.game.singleclassgame.Game)
+	 */
 	@Override
 	public void initialize(Game game) {
 		super.initialize(game);
 
 		factory = new ObjectFactory();
 		
-		
 		// register the collision response processor for our demo.
 		game.collisionMgr.registerProcessor(new ColliderResponse());
-
-
-		
 
 		// read image resources
 		game.resourceMgr.addResource("playerBall", "res/images/blue-bouncing-ball-64x64.png");
 		game.resourceMgr.addResource("enemyBall", "res/images/red-bouncing-ball-64x64.png");
 
 		// read Sounds
-		game.soundControl.load("boing", "res/audio/sounds/boing.wav");
+		game.soundControl.load("boing", "res/audio/sounds/boing1.wav");
 
 		// Add objects to world.
 		// ---------------------------------------------------------------------
 		// ---- Add the main player object
 		try {
-			player = ((GameObject) factory.create(game, GameObject.class, "player")).setPosition(50, 50)
-					.setImage(game.resourceMgr.getImage("playerBall")).setMoveFactor(0.50f).setMass(100f)
-					.setFriction(0.30f).setElasticity(0.32f).offsetAtCenter().setPriority(1).setDebugColor(Color.RED)
+			player = ((GameObject) factory.create(game, GameObject.class, "player"))
+					.setPosition(50, 50)
+					.setImage(game.resourceMgr.getImage("playerBall"))
+					.setMoveFactor(0.50f)
+					.setMass(100f)
+					.setFriction(0.30f)
+					.setElasticity(0.32f)
+					.offsetAtCenter()
+					.setPriority(1)
+					.setDebugColor(Color.RED)
 					.setLifeDuration(100000);
 			player.bBox.type = BoundingBoxType.CIRCLE;
 			game.add(player);
 		} catch (ResourceUnknownException e) {
-			System.err.println("Unable to retrieve the playerBall resource");
+			logger.error("Unable to retrieve the playerBall resource");
 			System.exit(-1);
 		}
 
@@ -99,14 +111,20 @@ public class SampleState extends AbstractGameState implements GameState {
 			float posY = (float) (Math.random() * game.playZone.height);
 			try {
 				GameObject enemy = ((GameObject) factory.create(game, GameObject.class, "enemy_" + i))
-						.setPosition(posX, posY).setImage(game.resourceMgr.getImage("enemyBall")).setSize(24.0f, 24.0f)
+						.setPosition(posX, posY)
+						.setImage(game.resourceMgr.getImage("enemyBall"))
+						.setSize(24.0f, 24.0f)
 						.setAcceleration((float) Math.random() * 0.005f, (float) Math.random() * 0.005f)
-						.setPriority(2 + i).setMass(50.0f).setFriction(0.95f).setElasticity(0.890f)
-						.setOffset(12.0f, 12.0f).setLifeDuration(300);
+						.setPriority(2 + i)
+						.setMass(50.0f)
+						.setFriction(0.95f)
+						.setElasticity(0.890f)
+						.setOffset(12.0f, 12.0f)
+						.setLifeDuration(300);
 				enemy.bBox.type = BoundingBoxType.CIRCLE;
 				game.add(enemy);
 			} catch (ResourceUnknownException e) {
-				System.err.println("Unable to retrieve the enemyBall resource");
+				logger.error("Unable to retrieve the enemyBall resource");
 				System.exit(-1);
 			}
 		}
@@ -114,8 +132,11 @@ public class SampleState extends AbstractGameState implements GameState {
 		// Other elements to the scene.
 		// ---------------------------------------------------------------------
 		// Add a Camera to the world.
-		Camera cam = (Camera) factory.createCamera(game, "camera").setTrackedObject(player).setTweenFactor(0.22f)
-				.setView(game.dim).setPosition(0.0f, 0.0f);
+		Camera cam = (Camera) factory.createCamera(game, "camera")
+				.setTrackedObject(player)
+				.setTweenFactor(0.22f)
+				.setView(game.dim)
+				.setPosition(0.0f, 0.0f);
 
 		game.world.addCamera(cam);
 
@@ -124,11 +145,10 @@ public class SampleState extends AbstractGameState implements GameState {
 
 	}
 
-	@Override
-	public void activate(Game game) {
-		super.activate(game);
-	}
-
+	/*
+	 * (non-Javadoc)
+	 * @see fr.snapgames.game.singleclassgame.core.state.AbstractGameState#input(fr.snapgames.game.singleclassgame.Game)
+	 */
 	@Override
 	public void input(Game game) {
 		super.input(game);
@@ -166,10 +186,12 @@ public class SampleState extends AbstractGameState implements GameState {
 
 	}
 
+	/*
+	 * (non-Javadoc)
+	 * @see fr.snapgames.game.singleclassgame.core.state.AbstractGameState#update(fr.snapgames.game.singleclassgame.Game, float)
+	 */
 	@Override
 	public void update(Game game, float elapsed) {
-		super.update(game, elapsed);
-
 		if (randomizeEnemies) {
 			randomizeEnemies(game);
 			randomizeEnemies = false;
@@ -180,28 +202,6 @@ public class SampleState extends AbstractGameState implements GameState {
 		}
 
 	}
-
-	@Override
-	public void render(Game game, Graphics2D g) {
-		super.render(game, g);
-		
-		
-		// if objects in the list, draw all those things
-		if (game.objects != null && game.objects.size() > 0) {
-			for (GameObject o : game.objects) {
-				o.render(g);
-			}
-		}
-		
-	}
-
-	@Override
-	public void deactivate(Game game) {
-		// TODO Auto-generated method stub
-		super.deactivate(game);
-	}
-
-	
 
 	/**
 	 * Generate randomly enemies position.
