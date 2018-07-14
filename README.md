@@ -87,6 +87,33 @@ used here are declared into the Game class.
 > **NOTE**
 > Must add some interactions between "player" and a map.
 
+### Game State Manager
+
+One of the most important system in the game, is not only the **Game Loop**, but also the system that can switch from one state of the game (the title screen) to another (the main play state) one without pain: `GameStateManager`. This particular class will manage multiple implementations of the interface named `GameState` to change smoothly the game behavior, corresponding to any game play you want to provide. An abstract class, the `AbstractGameState` will provide the basic and default behavior of each game state.
+
+Some, the classes added are :
+
+- `GameState` defining the basic interface to provide a new behavior to your game,
+- `AbstractGameState` to provide a default behavior and some implementation to the GameState interface,
+- `GameStateManager` which is the main State manager, to switch from state to another with only a simple method call.
+
+#### GameState
+
+This simple interface provide the main methods to be implemented into any game state:
+
+- `initialize(Game)` to initialize state at Game start,
+- `activate(Game)` when the state must be activated by the `GameStateManager` (`GSM`),
+- `deactivate(Game)`when the state will be deactivated by the `GSM`,
+- `input(Game)` when the manager `GSM` will delegate the input processing to this particular GameState implementation,
+- `update(Game,float)` called by `GSM` to update the activated state,
+- `render(Game,Graphics2D)` to let `GSM` delegate the rendering of this state.
+
+Let's see JavaDoc for more information.
+
+
+#### GameStateManager
+
+
 ## Resources
 
 ### Audio
