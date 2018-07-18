@@ -23,6 +23,9 @@ import java.util.List;
 
 import javax.swing.JPanel;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import fr.snapgames.game.singleclassgame.core.audio.SoundControl;
 import fr.snapgames.game.singleclassgame.core.collision.CollisionManager;
 import fr.snapgames.game.singleclassgame.core.config.Configuration;
@@ -60,6 +63,8 @@ public class Game extends JPanel {
 	 *
 	 */
 	private static final long serialVersionUID = 1L;
+	
+	private static final Logger logger = LoggerFactory.getLogger(Game.class);
 
 	// private static final Logger logger = LoggerFactory.getLogger(Game.class);
 
@@ -196,7 +201,7 @@ public class Game extends JPanel {
 		window.setKeyInputListener(kil);
 		// show me the window !
 		window.show();
-
+		logger.debug("Window has been created");
 	}
 
 	/**
@@ -232,12 +237,16 @@ public class Game extends JPanel {
 		collisionMgr.setDimension(playZone);
 		gsm = new GameStateManager();
 
+		// define Sample states for ths game demo.
 		SampleState samp = new SampleState(this);
 		samp.initialize(this);
 		gsm.add(samp);
-
+		
+		
+		// start on the first state.
 		gsm.start(this, "SampleState");
 
+		logger.info("state {} initialized", samp.getName());
 	}
 
 	/**
@@ -359,7 +368,7 @@ public class Game extends JPanel {
 			}
 			g.setStroke(bckValue);
 		}
-		
+
 		if (debug > 3) {
 			collisionMgr.draw(this, g, realFPS);
 		}
@@ -406,6 +415,7 @@ public class Game extends JPanel {
 		kil = null;
 		resourceMgr = null;
 		buffer = null;
+		logger.debug("All resources disposed.");
 	}
 
 	/**
@@ -414,17 +424,21 @@ public class Game extends JPanel {
 	 * @param o the GameObject to add to the list.
 	 */
 	public void add(GameObject o) {
-		o.forces.addAll(world.forces);
-		o.forces.add(world.gravity);
-		objects.add(o);
-		collisionMgr.add(o);
-		objects.sort(new Comparator<GameObject>() {
-			public int compare(GameObject o1, GameObject o2) {
-				return (o1.priority < o2.priority ? -1 : 1);
-			}
+		if (!objects.contains(o)) {
+			o.forces.addAll(world.forces);
+			o.forces.add(world.gravity);
+			objects.add(o);
+			collisionMgr.add(o);
+			objects.sort(new Comparator<GameObject>() {
+				public int compare(GameObject o1, GameObject o2) {
+					return (o1.priority < o2.priority ? -1 : 1);
+				}
 
-			;
-		});
+				;
+			});
+		} else {
+			logger.error("The objects stack already contains {}", o.name);
+		}
 	}
 
 	/**
@@ -444,10 +458,10 @@ public class Game extends JPanel {
 				int valueWidth = Integer.parseInt(parts[1]);
 				if (valueWidth > 0 && valueWidth < 2048) {
 					dim.width = valueWidth;
-					System.out.println(String.format("Window width set to %d", dim.width));
+					logger.info(String.format("Window width set to %d", dim.width));
 					Configuration.setInteger("window.width", dim.width);
 				} else {
-					System.err.println(String.format("Unable to set height to %d (min=1,max=2048)", valueWidth));
+					logger.error(String.format("Unable to set height to %d (min=1,max=2048)", valueWidth));
 				}
 				break;
 			case "height":
@@ -455,10 +469,10 @@ public class Game extends JPanel {
 				int valueHeight = Integer.parseInt(parts[1]);
 				if (valueHeight > 0 && valueHeight < 2048) {
 					dim.height = valueHeight;
-					System.out.println(String.format("Window height set to %d", dim.height));
+					logger.info(String.format("Window height set to %d", dim.height));
 					Configuration.setInteger("window.height", dim.height);
 				} else {
-					System.err.println(String.format("Unable to set height to %d (min=1,max=2048)", valueHeight));
+					logger.error(String.format("Unable to set height to %d (min=1,max=2048)", valueHeight));
 				}
 				break;
 			case "scale":
@@ -466,10 +480,10 @@ public class Game extends JPanel {
 				float valueScale = Float.parseFloat(parts[1]);
 				if (valueScale >= 1.0f && valueScale <= 4.0f) {
 					scale = valueScale;
-					System.out.println(String.format("Window scale set to %f", valueScale));
+					logger.info(String.format("Window scale set to %f", valueScale));
 					Configuration.setFloat("window.scale", scale);
 				} else {
-					System.err.println(String.format("Unable to set scale value to %f (min=1,max=4)", valueScale));
+					logger.error(String.format("Unable to set scale value to %f (min=1,max=4)", valueScale));
 				}
 				break;
 			case "debug":
@@ -477,10 +491,10 @@ public class Game extends JPanel {
 				int value = Integer.parseInt(parts[1]);
 				if (value >= 0 && value <= 9) {
 					debug = value;
-					System.out.println(String.format("debug mode set to %d", debug));
+					logger.info(String.format("debug mode set to %d", debug));
 					Configuration.setInteger("debug.level", debug);
 				} else {
-					System.err.println(String.format("Unable to set value to %d, (min=0,max=9)", value));
+					logger.error(String.format("Unable to set value to %d, (min=0,max=9)", value));
 				}
 				break;
 			default:
